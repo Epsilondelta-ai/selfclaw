@@ -1,0 +1,16 @@
+[package]
+name = "selfclaw-agent-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+selfclaw-memory = { path = "../memory" }
+selfclaw-tools = { path = "../tools" }
+selfclaw-skills = { path = "../skills" }
+selfclaw-config = { path = "../config" }

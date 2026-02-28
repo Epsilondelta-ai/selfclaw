@@ -1,0 +1,21 @@
+[agent]
+loop_interval_secs = 60
+consolidation_every_n_cycles = 50
+max_actions_per_cycle = 5
+
+[llm]
+provider = "anthropic"
+model = "claude-sonnet-4-20250514"
+max_tokens = 4096
+temperature = 0.7
+
+[safety]
+max_api_calls_per_hour = 100
+max_file_writes_per_cycle = 10
+sandbox_shell = true
+allowed_directories = ["./memory", "./skills", "./output"]
+
+[communication]
+cli_enabled = true
+web_ui_enabled = false
+web_ui_port = 3000

@@ -1,0 +1,24 @@
+[workspace]
+members = [
+    "crates/agent-core",
+    "crates/memory",
+    "crates/tools",
+    "crates/skills",
+    "crates/comms",
+    "crates/config",
+    "crates/selfclaw",
+]
+resolver = "2"
+
+[workspace.dependencies]
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", features = ["json"] }
+clap = { version = "4", features = ["derive"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+pulldown-cmark = "0.12"
+notify = "7"
+anyhow = "1"
+thiserror = "2"
