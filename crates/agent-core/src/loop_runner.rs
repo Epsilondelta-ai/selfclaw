@@ -1,6 +1,9 @@
 use chrono::Utc;
+use tokio::sync::mpsc;
 use tracing::{info, warn};
 
+use selfclaw_comms::message::{InboundMessage, OutboundMessage, ChannelKind};
+use selfclaw_comms::Gateway;
 use selfclaw_config::SelfClawConfig;
 use selfclaw_memory::episodic::EpisodicLogger;
 use selfclaw_memory::purpose::{PurposeEntry, PurposeJournal};
@@ -43,6 +46,12 @@ pub struct AgentLoop<S: MemoryStore, L: LlmCaller> {
     pub state: AgentState,
     pub purpose: PurposeTracker,
     pub cycle_count: u64,
+    /// Gateway for multi-channel communication.
+    pub gateway: Option<Gateway>,
+    /// Receiver for inbound messages from all channels.
+    pub inbound_rx: Option<mpsc::UnboundedReceiver<InboundMessage>>,
+    /// Pending inbound messages collected between cycles.
+    pub pending_messages: Vec<InboundMessage>,
 }
 
 impl<S: MemoryStore, L: LlmCaller> AgentLoop<S, L> {
@@ -55,7 +64,68 @@ impl<S: MemoryStore, L: LlmCaller> AgentLoop<S, L> {
             state: AgentState::Idle,
             purpose: PurposeTracker::new(),
             cycle_count: 0,
+            gateway: None,
+            inbound_rx: None,
+            pending_messages: Vec::new(),
         }
+    }
+
+    /// Attach a gateway for multi-channel communication.
+    pub fn with_gateway(mut self, mut gateway: Gateway) -> Self {
+        self.inbound_rx = gateway.take_inbound_receiver();
+        self.gateway = Some(gateway);
+        self
+    }
+
+    /// Send a message to a human via a specific channel.
+    pub fn send_message(&self, content: &str, channel: ChannelKind, conversation_id: Option<String>) {
+        if let Some(ref gw) = self.gateway {
+            let mut msg = OutboundMessage::new(content, channel);
+            msg.conversation_id = conversation_id;
+            if let Err(e) = gw.send(msg) {
+                warn!(error = %e, "Failed to send message via gateway");
+            }
+        }
+    }
+
+    /// Broadcast a message to all connected channels.
+    pub fn broadcast_message(&self, content: &str) {
+        if let Some(ref gw) = self.gateway {
+            gw.broadcast(content);
+        }
+    }
+
+    /// Drain any pending inbound messages from all channels.
+    fn drain_inbound_messages(&mut self) {
+        if let Some(ref mut rx) = self.inbound_rx {
+            while let Ok(msg) = rx.try_recv() {
+                info!(
+                    channel = %msg.metadata.channel,
+                    sender = %msg.metadata.sender,
+                    "Received inbound message"
+                );
+                self.pending_messages.push(msg);
+            }
+        }
+    }
+
+    /// Format pending messages as context for the LLM.
+    fn format_pending_messages(&self) -> String {
+        if self.pending_messages.is_empty() {
+            return String::new();
+        }
+
+        let mut lines = vec!["## Pending Human Messages\n".to_string()];
+        for msg in &self.pending_messages {
+            lines.push(format!(
+                "- **[{}] {} ({}):** {}",
+                msg.metadata.channel,
+                msg.metadata.sender,
+                msg.metadata.intent.display_str(),
+                msg.content
+            ));
+        }
+        lines.join("\n")
     }
 
     /// Execute one full loop cycle: Reflect -> Think -> Plan -> Act -> Observe -> Update.
@@ -64,12 +134,33 @@ impl<S: MemoryStore, L: LlmCaller> AgentLoop<S, L> {
         let date = now.format("%Y-%m-%d").to_string();
         let time = now.format("%H:%M:%S UTC").to_string();
 
+        // Drain any pending inbound messages from channels
+        self.drain_inbound_messages();
+
         // ── REFLECT ──
         self.state = self.state.next(); // Idle -> Reflecting
         info!(state = %self.state, "Starting cycle {}", self.cycle_count + 1);
-        let reflection_context = prompt::build_reflection_context(&self.store, &date);
-        let system_prompt =
-            prompt::build_system_prompt(&self.store, &self.purpose, &self.tools.names());
+        let mut reflection_context = prompt::build_reflection_context(&self.store, &date);
+
+        // Include pending human messages in the reflection context
+        let messages_context = self.format_pending_messages();
+        if !messages_context.is_empty() {
+            reflection_context = format!("{}\n\n---\n\n{}", reflection_context, messages_context);
+        }
+
+        // Build system prompt with channel info
+        let channel_names = self.gateway.as_ref().map(|gw| {
+            gw.registered_channels()
+                .iter()
+                .map(|k| k.to_string())
+                .collect::<Vec<_>>()
+        });
+        let system_prompt = prompt::build_system_prompt(
+            &self.store,
+            &self.purpose,
+            &self.tools.names(),
+            channel_names.as_deref(),
+        );
 
         // ── THINK ──
         self.state = self.state.next(); // Reflecting -> Thinking
@@ -113,6 +204,34 @@ impl<S: MemoryStore, L: LlmCaller> AgentLoop<S, L> {
             if i >= max_actions {
                 warn!("Hit max_actions_per_cycle limit ({})", max_actions);
                 break;
+            }
+
+            // Special handling for human_message tool — route through gateway
+            if action.tool_name == "human_message" {
+                let content = action.input["content"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string();
+                let channel_str = action.input["channel"]
+                    .as_str()
+                    .unwrap_or("cli");
+                let channel = match channel_str {
+                    "discord" => ChannelKind::Discord,
+                    "telegram" => ChannelKind::Telegram,
+                    "slack" => ChannelKind::Slack,
+                    "webchat" => ChannelKind::WebChat,
+                    _ => ChannelKind::Cli,
+                };
+                let conversation_id = action.input["conversation_id"]
+                    .as_str()
+                    .map(|s| s.to_string());
+
+                self.send_message(&content, channel, conversation_id);
+                observations.push(ToolOutput::ok(serde_json::json!({
+                    "sent": true,
+                    "channel": channel_str,
+                })));
+                continue;
             }
 
             if let Some(tool) = self.tools.get(&action.tool_name) {
@@ -192,6 +311,9 @@ impl<S: MemoryStore, L: LlmCaller> AgentLoop<S, L> {
             let _ = journal.append_entry(&entry);
         }
 
+        // Clear pending messages after processing
+        self.pending_messages.clear();
+
         // Return to idle
         self.state = self.state.next(); // Updating -> Idle
         self.cycle_count += 1;
@@ -206,10 +328,41 @@ impl<S: MemoryStore, L: LlmCaller> AgentLoop<S, L> {
     }
 
     /// Run the agent loop continuously with the configured interval.
+    ///
+    /// The loop runs on a timer (default 60s) but can also be triggered
+    /// immediately by incoming human messages from any channel.
     pub async fn run(&mut self) -> Result<(), String> {
         let interval = std::time::Duration::from_secs(self.config.agent.loop_interval_secs);
 
         loop {
+            // Wait for either the timer or an incoming message
+            let has_message = if let Some(ref mut rx) = self.inbound_rx {
+                tokio::select! {
+                    _ = tokio::time::sleep(interval) => false,
+                    msg = rx.recv() => {
+                        if let Some(msg) = msg {
+                            info!(
+                                channel = %msg.metadata.channel,
+                                sender = %msg.metadata.sender,
+                                "Message triggered cycle"
+                            );
+                            self.pending_messages.push(msg);
+                            true
+                        } else {
+                            false
+                        }
+                    }
+                }
+            } else {
+                tokio::time::sleep(interval).await;
+                false
+            };
+
+            if has_message {
+                // Small delay to batch rapid messages
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            }
+
             match self.run_cycle() {
                 Ok(result) => {
                     info!(
@@ -222,7 +375,6 @@ impl<S: MemoryStore, L: LlmCaller> AgentLoop<S, L> {
                     warn!(error = %e, "Cycle failed");
                 }
             }
-            tokio::time::sleep(interval).await;
         }
     }
 }

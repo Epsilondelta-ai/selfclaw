@@ -90,6 +90,75 @@ pub struct CommsConfig {
 
     #[serde(default = "default_web_ui_port")]
     pub web_ui_port: u16,
+
+    #[serde(default)]
+    pub discord: DiscordConfig,
+
+    #[serde(default)]
+    pub telegram: TelegramConfig,
+
+    #[serde(default)]
+    pub slack: SlackConfig,
+
+    #[serde(default)]
+    pub webchat: WebChatConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct DiscordConfig {
+    #[serde(default)]
+    pub enabled: bool,
+
+    #[serde(default)]
+    pub bot_token: String,
+
+    #[serde(default)]
+    pub allowed_channel_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct TelegramConfig {
+    #[serde(default)]
+    pub enabled: bool,
+
+    #[serde(default)]
+    pub bot_token: String,
+
+    #[serde(default)]
+    pub allowed_chat_ids: Vec<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct SlackConfig {
+    #[serde(default)]
+    pub enabled: bool,
+
+    #[serde(default)]
+    pub bot_token: String,
+
+    #[serde(default)]
+    pub app_token: String,
+
+    #[serde(default)]
+    pub allowed_channel_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct WebChatConfig {
+    #[serde(default)]
+    pub enabled: bool,
+
+    #[serde(default = "default_webchat_port")]
+    pub port: u16,
+}
+
+impl Default for WebChatConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            port: default_webchat_port(),
+        }
+    }
 }
 
 // ── Default value functions ──────────────────────────────────────────
@@ -136,6 +205,9 @@ fn default_cli_enabled() -> bool {
 }
 fn default_web_ui_port() -> u16 {
     3000
+}
+fn default_webchat_port() -> u16 {
+    3001
 }
 
 // ── Default trait impls ──────────────────────────────────────────────
@@ -189,6 +261,10 @@ impl Default for CommsConfig {
             cli_enabled: default_cli_enabled(),
             web_ui_enabled: false,
             web_ui_port: default_web_ui_port(),
+            discord: DiscordConfig::default(),
+            telegram: TelegramConfig::default(),
+            slack: SlackConfig::default(),
+            webchat: WebChatConfig::default(),
         }
     }
 }

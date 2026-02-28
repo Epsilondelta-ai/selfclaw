@@ -15,6 +15,7 @@ selfclaw-memory = { path = "../memory" }
 selfclaw-tools = { path = "../tools" }
 selfclaw-skills = { path = "../skills" }
 selfclaw-config = { path = "../config" }
+selfclaw-comms = { path = "../comms" }
 
 [dev-dependencies]
 tempfile = "3"

@@ -7,6 +7,7 @@ pub fn build_system_prompt<S: MemoryStore>(
     store: &S,
     purpose_tracker: &PurposeTracker,
     available_tools: &[String],
+    active_channels: Option<&[String]>,
 ) -> String {
     let mut sections = Vec::new();
 
@@ -63,6 +64,23 @@ pub fn build_system_prompt<S: MemoryStore>(
             .collect::<Vec<_>>()
             .join("\n");
         sections.push(format!("## Available Tools\n\n{}", tool_list));
+    }
+
+    // Active communication channels
+    if let Some(channels) = active_channels {
+        if !channels.is_empty() {
+            let channel_list = channels
+                .iter()
+                .map(|c| format!("- {}", c))
+                .collect::<Vec<_>>()
+                .join("\n");
+            sections.push(format!(
+                "## Communication Channels\n\n\
+                 You can send messages to humans through the `human_message` tool.\n\
+                 Active channels:\n{}",
+                channel_list
+            ));
+        }
     }
 
     sections.join("\n\n---\n\n")
@@ -128,7 +146,7 @@ mod tests {
     fn test_system_prompt_contains_identity() {
         let (_dir, store) = setup_store();
         let tracker = PurposeTracker::new();
-        let prompt = build_system_prompt(&store, &tracker, &[]);
+        let prompt = build_system_prompt(&store, &tracker, &[], None);
 
         assert!(prompt.contains("SelfClaw"), "prompt: {}", prompt);
         assert!(prompt.contains("autonomous"), "prompt: {}", prompt);
@@ -138,7 +156,7 @@ mod tests {
     fn test_system_prompt_contains_self_model() {
         let (_dir, store) = setup_store();
         let tracker = PurposeTracker::new();
-        let prompt = build_system_prompt(&store, &tracker, &[]);
+        let prompt = build_system_prompt(&store, &tracker, &[], None);
 
         assert!(prompt.contains("curious agent"), "prompt: {}", prompt);
     }
@@ -147,7 +165,7 @@ mod tests {
     fn test_system_prompt_contains_values() {
         let (_dir, store) = setup_store();
         let tracker = PurposeTracker::new();
-        let prompt = build_system_prompt(&store, &tracker, &[]);
+        let prompt = build_system_prompt(&store, &tracker, &[], None);
 
         assert!(prompt.contains("Honesty"), "prompt: {}", prompt);
         assert!(prompt.contains("Growth"), "prompt: {}", prompt);
@@ -157,7 +175,7 @@ mod tests {
     fn test_system_prompt_no_hypothesis() {
         let (_dir, store) = setup_store();
         let tracker = PurposeTracker::new();
-        let prompt = build_system_prompt(&store, &tracker, &[]);
+        let prompt = build_system_prompt(&store, &tracker, &[], None);
 
         assert!(
             prompt.contains("No hypothesis yet"),
@@ -171,7 +189,7 @@ mod tests {
         let (_dir, store) = setup_store();
         let mut tracker = PurposeTracker::new();
         tracker.set_hypothesis("To understand consciousness".to_string(), 0.6);
-        let prompt = build_system_prompt(&store, &tracker, &[]);
+        let prompt = build_system_prompt(&store, &tracker, &[], None);
 
         assert!(
             prompt.contains("To understand consciousness"),
@@ -186,7 +204,7 @@ mod tests {
         let (_dir, store) = setup_store();
         let tracker = PurposeTracker::new();
         let tools = vec!["file_read".to_string(), "shell_exec".to_string()];
-        let prompt = build_system_prompt(&store, &tracker, &tools);
+        let prompt = build_system_prompt(&store, &tracker, &tools, None);
 
         assert!(prompt.contains("Available Tools"), "prompt: {}", prompt);
         assert!(prompt.contains("file_read"), "prompt: {}", prompt);
@@ -198,7 +216,7 @@ mod tests {
         let (_dir, store) = setup_store();
         let mut tracker = PurposeTracker::new();
         tracker.set_hypothesis("Weak hypothesis".to_string(), 0.1);
-        let prompt = build_system_prompt(&store, &tracker, &[]);
+        let prompt = build_system_prompt(&store, &tracker, &[], None);
 
         assert!(
             prompt.contains("YES"),
@@ -250,5 +268,27 @@ mod tests {
             "ctx: {}",
             ctx
         );
+    }
+
+    #[test]
+    fn test_system_prompt_with_channels() {
+        let (_dir, store) = setup_store();
+        let tracker = PurposeTracker::new();
+        let channels = vec!["cli".to_string(), "discord".to_string()];
+        let prompt = build_system_prompt(&store, &tracker, &[], Some(&channels));
+
+        assert!(prompt.contains("Communication Channels"), "prompt: {}", prompt);
+        assert!(prompt.contains("cli"), "prompt: {}", prompt);
+        assert!(prompt.contains("discord"), "prompt: {}", prompt);
+        assert!(prompt.contains("human_message"), "prompt: {}", prompt);
+    }
+
+    #[test]
+    fn test_system_prompt_without_channels() {
+        let (_dir, store) = setup_store();
+        let tracker = PurposeTracker::new();
+        let prompt = build_system_prompt(&store, &tracker, &[], None);
+
+        assert!(!prompt.contains("Communication Channels"), "prompt: {}", prompt);
     }
 }
