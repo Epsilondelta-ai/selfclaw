@@ -8,16 +8,17 @@
 2. [Installation & Build](#installation--build)
 3. [CLI Commands](#cli-commands)
 4. [Configuration (selfclaw.toml)](#configuration)
-5. [Agent Loop](#agent-loop)
-6. [Memory System](#memory-system)
-7. [Skills System](#skills-system)
-8. [Communication Channels](#communication-channels)
-9. [Web UI](#web-ui)
-10. [WebSocket Protocol](#websocket-protocol)
-11. [Tools](#tools)
-12. [Safety Guardrails](#safety-guardrails)
-13. [Development & Testing](#development--testing)
-14. [Troubleshooting](#troubleshooting)
+5. [LLM Providers](#llm-providers)
+6. [Agent Loop](#agent-loop)
+7. [Memory System](#memory-system)
+8. [Skills System](#skills-system)
+9. [Communication Channels](#communication-channels)
+10. [Web UI](#web-ui)
+11. [WebSocket Protocol](#websocket-protocol)
+12. [Tools](#tools)
+13. [Safety Guardrails](#safety-guardrails)
+14. [Development & Testing](#development--testing)
+15. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -198,6 +199,14 @@ selfclaw memory episodic/2026-03-01.md
 selfclaw memory relational/humans/
 ```
 
+### `selfclaw providers` — List LLM Providers
+
+Shows all supported LLM providers with their default models, environment variables, and API endpoints.
+
+```bash
+selfclaw providers
+```
+
 ---
 
 ## Configuration
@@ -216,10 +225,12 @@ max_actions_per_cycle = 5            # Max actions per cycle. Default: 5
 
 # ── LLM ──────────────────────────────────────────────────
 [llm]
-provider = "anthropic"               # LLM provider. Default: "anthropic"
+provider = "anthropic"               # LLM provider (see `selfclaw providers`). Default: "anthropic"
 model = "claude-sonnet-4-20250514"   # Model name. Default: "claude-sonnet-4-20250514"
 max_tokens = 4096                    # Max output tokens. Default: 4096
 temperature = 0.7                    # Sampling temperature (0.0-2.0). Default: 0.7
+# api_key = "sk-..."                # Optional: explicit API key (overrides env var)
+# base_url = "https://custom.com"   # Optional: custom base URL (overrides provider default)
 
 # ── Safety ───────────────────────────────────────────────
 [safety]
@@ -277,6 +288,91 @@ port = 3001
 | `safety.max_api_calls_per_hour` | Must be > 0 |
 | `safety.max_file_writes_per_cycle` | Must be > 0 |
 | `communication.web_ui_port` | Must be > 0 |
+
+---
+
+## LLM Providers
+
+SelfClaw supports 12 built-in LLM providers plus any OpenAI-compatible endpoint.
+
+### Supported Providers
+
+| Provider | Config Name | Default Model | Env Var | API Base URL |
+|----------|------------|---------------|---------|-------------|
+| Anthropic | `anthropic` | claude-sonnet-4-20250514 | `ANTHROPIC_API_KEY` | api.anthropic.com |
+| OpenAI | `openai` | gpt-4o | `OPENAI_API_KEY` | api.openai.com |
+| Google Gemini | `google` | gemini-2.0-flash | `GOOGLE_API_KEY` | generativelanguage.googleapis.com |
+| Ollama (local) | `ollama` | llama3.1 | — (no key needed) | localhost:11434 |
+| OpenRouter | `openrouter` | anthropic/claude-sonnet-4-20250514 | `OPENROUTER_API_KEY` | openrouter.ai/api |
+| Groq | `groq` | llama-3.3-70b-versatile | `GROQ_API_KEY` | api.groq.com/openai |
+| xAI (Grok) | `xai` | grok-3 | `XAI_API_KEY` | api.x.ai |
+| Mistral | `mistral` | mistral-large-latest | `MISTRAL_API_KEY` | api.mistral.ai |
+| DeepSeek | `deepseek` | deepseek-chat | `DEEPSEEK_API_KEY` | api.deepseek.com |
+| Together AI | `together` | Meta-Llama-3.1-70B-Instruct-Turbo | `TOGETHER_API_KEY` | api.together.xyz |
+| Moonshot (Kimi) | `moonshot` | moonshot-v1-8k | `MOONSHOT_API_KEY` | api.moonshot.cn |
+| Amazon Bedrock | `bedrock` | anthropic.claude-sonnet-4-20250514-v1:0 | `AWS_ACCESS_KEY_ID` | bedrock-runtime.us-east-1.amazonaws.com |
+
+### Provider Aliases
+
+Some providers accept multiple names:
+
+| Aliases | Resolves To |
+|---------|------------|
+| `claude` | anthropic |
+| `gpt` | openai |
+| `gemini`, `vertex` | google |
+| `grok` | xai |
+| `together-ai`, `togetherai` | together |
+| `kimi` | moonshot |
+| `amazon-bedrock`, `aws-bedrock` | bedrock |
+
+### Configuration Examples
+
+**Anthropic (default):**
+```toml
+[llm]
+provider = "anthropic"
+model = "claude-sonnet-4-20250514"
+```
+
+**OpenAI:**
+```toml
+[llm]
+provider = "openai"
+model = "gpt-4o"
+# Set OPENAI_API_KEY env var, or:
+# api_key = "sk-..."
+```
+
+**Local Ollama (no API key needed):**
+```toml
+[llm]
+provider = "ollama"
+model = "llama3.1"
+# base_url = "http://192.168.1.100:11434"  # remote Ollama instance
+```
+
+**OpenRouter (access many models through one API):**
+```toml
+[llm]
+provider = "openrouter"
+model = "anthropic/claude-sonnet-4-20250514"
+```
+
+**Custom OpenAI-compatible endpoint:**
+```toml
+[llm]
+provider = "my-llm-service"
+model = "custom-model-v1"
+base_url = "https://my-llm-proxy.example.com"
+api_key = "my-key"
+```
+
+### Authentication Priority
+
+API keys are resolved in this order:
+1. **`llm.api_key`** in `selfclaw.toml` (explicit config)
+2. **Environment variable** for the provider (e.g. `ANTHROPIC_API_KEY`)
 
 ---
 

@@ -237,7 +237,7 @@ consolidation_every_n_cycles = 50
 max_actions_per_cycle = 5
 
 [llm]
-provider = "anthropic"                     # anthropic | openai | google | ollama | openrouter | groq | xai | mistral | deepseek | <custom>
+provider = "anthropic"                     # anthropic | openai | google | ollama | openrouter | groq | xai | mistral | deepseek | together | moonshot | bedrock | <custom>
 model = "claude-sonnet-4-20250514"
 max_tokens = 4096
 temperature = 0.7

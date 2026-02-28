@@ -41,6 +41,9 @@ pub enum Commands {
         /// Path to the memory file (relative to memory directory)
         path: String,
     },
+
+    /// List all supported LLM providers
+    Providers,
 }
 
 #[tokio::main]
@@ -60,6 +63,10 @@ async fn main() -> anyhow::Result<()> {
         Commands::Chat => commands::chat::execute(config, &cli.memory_dir).await,
         Commands::Status => commands::status::execute(config, &cli.memory_dir),
         Commands::Memory { path } => commands::memory::execute(&cli.memory_dir, &path),
+        Commands::Providers => {
+            commands::providers::execute();
+            Ok(())
+        }
     }
 }
 
@@ -121,5 +128,11 @@ mod tests {
     fn test_cli_requires_subcommand() {
         let result = Cli::try_parse_from(["selfclaw"]);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_cli_parses_providers() {
+        let cli = Cli::parse_from(["selfclaw", "providers"]);
+        assert!(matches!(cli.command, Commands::Providers));
     }
 }

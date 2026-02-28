@@ -6,16 +6,17 @@
 2. [설치 및 빌드](#설치-및-빌드)
 3. [CLI 명령어](#cli-명령어)
 4. [설정 파일 (selfclaw.toml)](#설정-파일)
-5. [에이전트 루프](#에이전트-루프)
-6. [메모리 시스템](#메모리-시스템)
-7. [스킬 시스템](#스킬-시스템)
-8. [통신 채널](#통신-채널)
-9. [Web UI](#web-ui)
-10. [WebSocket 프로토콜](#websocket-프로토콜)
-11. [도구 (Tools)](#도구)
-12. [안전 장치](#안전-장치)
-13. [개발 및 테스트](#개발-및-테스트)
-14. [문제 해결](#문제-해결)
+5. [LLM 프로바이더](#llm-프로바이더)
+6. [에이전트 루프](#에이전트-루프)
+7. [메모리 시스템](#메모리-시스템)
+8. [스킬 시스템](#스킬-시스템)
+9. [통신 채널](#통신-채널)
+10. [Web UI](#web-ui)
+11. [WebSocket 프로토콜](#websocket-프로토콜)
+12. [도구 (Tools)](#도구)
+13. [안전 장치](#안전-장치)
+14. [개발 및 테스트](#개발-및-테스트)
+15. [문제 해결](#문제-해결)
 
 ---
 
@@ -196,6 +197,14 @@ selfclaw memory episodic/2026-03-01.md
 selfclaw memory relational/humans/
 ```
 
+### `selfclaw providers` — LLM 프로바이더 목록
+
+지원되는 모든 LLM 프로바이더를 기본 모델, 환경 변수, API 엔드포인트와 함께 표시합니다.
+
+```bash
+selfclaw providers
+```
+
 ---
 
 ## 설정 파일
@@ -214,10 +223,12 @@ max_actions_per_cycle = 5            # 사이클당 최대 행동 수, 기본: 5
 
 # ── LLM 설정 ─────────────────────────────────────────────
 [llm]
-provider = "anthropic"               # LLM 제공자, 기본: "anthropic"
+provider = "anthropic"               # LLM 제공자 (`selfclaw providers` 참조), 기본: "anthropic"
 model = "claude-sonnet-4-20250514"   # 모델명, 기본: "claude-sonnet-4-20250514"
 max_tokens = 4096                    # 최대 출력 토큰, 기본: 4096
 temperature = 0.7                    # 샘플링 온도 (0.0~2.0), 기본: 0.7
+# api_key = "sk-..."                # 선택: 명시적 API 키 (환경 변수 대신 사용)
+# base_url = "https://custom.com"   # 선택: 커스텀 API 기본 URL
 
 # ── 안전 설정 ─────────────────────────────────────────────
 [safety]
@@ -275,6 +286,91 @@ port = 3001
 | `safety.max_api_calls_per_hour` | > 0 |
 | `safety.max_file_writes_per_cycle` | > 0 |
 | `communication.web_ui_port` | > 0 |
+
+---
+
+## LLM 프로바이더
+
+SelfClaw는 12개의 내장 LLM 프로바이더와 OpenAI 호환 엔드포인트를 지원합니다.
+
+### 지원 프로바이더
+
+| 프로바이더 | 설정 이름 | 기본 모델 | 환경 변수 | API 기본 URL |
+|-----------|----------|----------|----------|-------------|
+| Anthropic | `anthropic` | claude-sonnet-4-20250514 | `ANTHROPIC_API_KEY` | api.anthropic.com |
+| OpenAI | `openai` | gpt-4o | `OPENAI_API_KEY` | api.openai.com |
+| Google Gemini | `google` | gemini-2.0-flash | `GOOGLE_API_KEY` | generativelanguage.googleapis.com |
+| Ollama (로컬) | `ollama` | llama3.1 | — (키 불필요) | localhost:11434 |
+| OpenRouter | `openrouter` | anthropic/claude-sonnet-4-20250514 | `OPENROUTER_API_KEY` | openrouter.ai/api |
+| Groq | `groq` | llama-3.3-70b-versatile | `GROQ_API_KEY` | api.groq.com/openai |
+| xAI (Grok) | `xai` | grok-3 | `XAI_API_KEY` | api.x.ai |
+| Mistral | `mistral` | mistral-large-latest | `MISTRAL_API_KEY` | api.mistral.ai |
+| DeepSeek | `deepseek` | deepseek-chat | `DEEPSEEK_API_KEY` | api.deepseek.com |
+| Together AI | `together` | Meta-Llama-3.1-70B-Instruct-Turbo | `TOGETHER_API_KEY` | api.together.xyz |
+| Moonshot (Kimi) | `moonshot` | moonshot-v1-8k | `MOONSHOT_API_KEY` | api.moonshot.cn |
+| Amazon Bedrock | `bedrock` | anthropic.claude-sonnet-4-20250514-v1:0 | `AWS_ACCESS_KEY_ID` | bedrock-runtime.us-east-1.amazonaws.com |
+
+### 프로바이더 별칭
+
+일부 프로바이더는 여러 이름으로 사용할 수 있습니다:
+
+| 별칭 | 실제 프로바이더 |
+|-----|--------------|
+| `claude` | anthropic |
+| `gpt` | openai |
+| `gemini`, `vertex` | google |
+| `grok` | xai |
+| `together-ai`, `togetherai` | together |
+| `kimi` | moonshot |
+| `amazon-bedrock`, `aws-bedrock` | bedrock |
+
+### 설정 예시
+
+**Anthropic (기본):**
+```toml
+[llm]
+provider = "anthropic"
+model = "claude-sonnet-4-20250514"
+```
+
+**OpenAI:**
+```toml
+[llm]
+provider = "openai"
+model = "gpt-4o"
+# OPENAI_API_KEY 환경 변수 설정, 또는:
+# api_key = "sk-..."
+```
+
+**로컬 Ollama (API 키 불필요):**
+```toml
+[llm]
+provider = "ollama"
+model = "llama3.1"
+# base_url = "http://192.168.1.100:11434"  # 원격 Ollama 인스턴스
+```
+
+**OpenRouter (하나의 API로 여러 모델 접근):**
+```toml
+[llm]
+provider = "openrouter"
+model = "anthropic/claude-sonnet-4-20250514"
+```
+
+**커스텀 OpenAI 호환 엔드포인트:**
+```toml
+[llm]
+provider = "my-llm-service"
+model = "custom-model-v1"
+base_url = "https://my-llm-proxy.example.com"
+api_key = "my-key"
+```
+
+### 인증 우선순위
+
+API 키는 다음 순서로 확인됩니다:
+1. **`llm.api_key`** — `selfclaw.toml`에 명시적으로 설정된 키
+2. **환경 변수** — 프로바이더별 환경 변수 (예: `ANTHROPIC_API_KEY`)
 
 ---
 

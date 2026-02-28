@@ -14,7 +14,49 @@ pub enum ProviderKind {
     XAI,
     Mistral,
     DeepSeek,
+    Together,
+    Moonshot,
+    Bedrock,
     Custom,
+}
+
+impl ProviderKind {
+    /// All known provider kinds (excluding Custom).
+    pub fn all() -> &'static [ProviderKind] {
+        &[
+            Self::Anthropic,
+            Self::OpenAI,
+            Self::Google,
+            Self::Ollama,
+            Self::OpenRouter,
+            Self::Groq,
+            Self::XAI,
+            Self::Mistral,
+            Self::DeepSeek,
+            Self::Together,
+            Self::Moonshot,
+            Self::Bedrock,
+        ]
+    }
+
+    /// The canonical name used in config files.
+    pub fn name(&self) -> &'static str {
+        match self {
+            Self::Anthropic => "anthropic",
+            Self::OpenAI => "openai",
+            Self::Google => "google",
+            Self::Ollama => "ollama",
+            Self::OpenRouter => "openrouter",
+            Self::Groq => "groq",
+            Self::XAI => "xai",
+            Self::Mistral => "mistral",
+            Self::DeepSeek => "deepseek",
+            Self::Together => "together",
+            Self::Moonshot => "moonshot",
+            Self::Bedrock => "bedrock",
+            Self::Custom => "custom",
+        }
+    }
 }
 
 impl ProviderKind {
@@ -30,6 +72,9 @@ impl ProviderKind {
             "xai" | "grok" => Self::XAI,
             "mistral" => Self::Mistral,
             "deepseek" => Self::DeepSeek,
+            "together" | "together-ai" | "togetherai" => Self::Together,
+            "moonshot" | "kimi" => Self::Moonshot,
+            "bedrock" | "amazon-bedrock" | "aws-bedrock" => Self::Bedrock,
             _ => Self::Custom,
         }
     }
@@ -46,6 +91,9 @@ impl ProviderKind {
             Self::XAI => "grok-3",
             Self::Mistral => "mistral-large-latest",
             Self::DeepSeek => "deepseek-chat",
+            Self::Together => "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+            Self::Moonshot => "moonshot-v1-8k",
+            Self::Bedrock => "anthropic.claude-sonnet-4-20250514-v1:0",
             Self::Custom => "default",
         }
     }
@@ -62,6 +110,9 @@ impl ProviderKind {
             Self::XAI => "XAI_API_KEY",
             Self::Mistral => "MISTRAL_API_KEY",
             Self::DeepSeek => "DEEPSEEK_API_KEY",
+            Self::Together => "TOGETHER_API_KEY",
+            Self::Moonshot => "MOONSHOT_API_KEY",
+            Self::Bedrock => "AWS_ACCESS_KEY_ID", // uses AWS credentials
             Self::Custom => "LLM_API_KEY",
         }
     }
@@ -78,6 +129,9 @@ impl ProviderKind {
             Self::XAI => "https://api.x.ai",
             Self::Mistral => "https://api.mistral.ai",
             Self::DeepSeek => "https://api.deepseek.com",
+            Self::Together => "https://api.together.xyz",
+            Self::Moonshot => "https://api.moonshot.cn",
+            Self::Bedrock => "https://bedrock-runtime.us-east-1.amazonaws.com",
             Self::Custom => "http://localhost:8080",
         }
     }
@@ -780,6 +834,227 @@ impl LlmProvider for DeepSeekProvider {
     }
 }
 
+// ── Together AI ─────────────────────────────────────────────────────
+
+pub struct TogetherProvider {
+    base_url: String,
+}
+
+impl TogetherProvider {
+    pub fn new(base_url: Option<&str>) -> Self {
+        Self {
+            base_url: base_url
+                .unwrap_or(ProviderKind::Together.default_base_url())
+                .to_string(),
+        }
+    }
+}
+
+impl LlmProvider for TogetherProvider {
+    fn kind(&self) -> ProviderKind {
+        ProviderKind::Together
+    }
+
+    fn endpoint(&self) -> String {
+        format!("{}/v1/chat/completions", self.base_url)
+    }
+
+    fn build_request(
+        &self,
+        model: &str,
+        max_tokens: u64,
+        temperature: f64,
+        prompt: &str,
+        system: Option<&str>,
+    ) -> serde_json::Value {
+        // Together AI uses OpenAI-compatible format
+        let mut messages = Vec::new();
+        if let Some(sys) = system {
+            messages.push(serde_json::json!({ "role": "system", "content": sys }));
+        }
+        messages.push(serde_json::json!({ "role": "user", "content": prompt }));
+
+        serde_json::json!({
+            "model": model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "messages": messages
+        })
+    }
+
+    fn parse_response(&self, response: &serde_json::Value) -> Result<String, String> {
+        response["choices"][0]["message"]["content"]
+            .as_str()
+            .map(|s| s.to_string())
+            .ok_or_else(|| {
+                format!(
+                    "failed to parse Together AI response: no choices[0].message.content in: {}",
+                    response
+                )
+            })
+    }
+
+    fn build_headers(&self, api_key: &str) -> Vec<(String, String)> {
+        vec![
+            (
+                "Authorization".to_string(),
+                format!("Bearer {}", api_key),
+            ),
+            ("content-type".to_string(), "application/json".to_string()),
+        ]
+    }
+}
+
+// ── Moonshot (Kimi) ─────────────────────────────────────────────────
+
+pub struct MoonshotProvider {
+    base_url: String,
+}
+
+impl MoonshotProvider {
+    pub fn new(base_url: Option<&str>) -> Self {
+        Self {
+            base_url: base_url
+                .unwrap_or(ProviderKind::Moonshot.default_base_url())
+                .to_string(),
+        }
+    }
+}
+
+impl LlmProvider for MoonshotProvider {
+    fn kind(&self) -> ProviderKind {
+        ProviderKind::Moonshot
+    }
+
+    fn endpoint(&self) -> String {
+        format!("{}/v1/chat/completions", self.base_url)
+    }
+
+    fn build_request(
+        &self,
+        model: &str,
+        max_tokens: u64,
+        temperature: f64,
+        prompt: &str,
+        system: Option<&str>,
+    ) -> serde_json::Value {
+        // Moonshot uses OpenAI-compatible format
+        let mut messages = Vec::new();
+        if let Some(sys) = system {
+            messages.push(serde_json::json!({ "role": "system", "content": sys }));
+        }
+        messages.push(serde_json::json!({ "role": "user", "content": prompt }));
+
+        serde_json::json!({
+            "model": model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "messages": messages
+        })
+    }
+
+    fn parse_response(&self, response: &serde_json::Value) -> Result<String, String> {
+        response["choices"][0]["message"]["content"]
+            .as_str()
+            .map(|s| s.to_string())
+            .ok_or_else(|| {
+                format!(
+                    "failed to parse Moonshot response: no choices[0].message.content in: {}",
+                    response
+                )
+            })
+    }
+
+    fn build_headers(&self, api_key: &str) -> Vec<(String, String)> {
+        vec![
+            (
+                "Authorization".to_string(),
+                format!("Bearer {}", api_key),
+            ),
+            ("content-type".to_string(), "application/json".to_string()),
+        ]
+    }
+}
+
+// ── Amazon Bedrock ──────────────────────────────────────────────────
+
+pub struct BedrockProvider {
+    base_url: String,
+}
+
+impl BedrockProvider {
+    pub fn new(base_url: Option<&str>) -> Self {
+        Self {
+            base_url: base_url
+                .unwrap_or(ProviderKind::Bedrock.default_base_url())
+                .to_string(),
+        }
+    }
+}
+
+impl LlmProvider for BedrockProvider {
+    fn kind(&self) -> ProviderKind {
+        ProviderKind::Bedrock
+    }
+
+    fn endpoint(&self) -> String {
+        // Bedrock uses model ID in URL path
+        format!(
+            "{}/model/{{model}}/converse",
+            self.base_url
+        )
+    }
+
+    fn build_request(
+        &self,
+        _model: &str,
+        max_tokens: u64,
+        temperature: f64,
+        prompt: &str,
+        system: Option<&str>,
+    ) -> serde_json::Value {
+        // Bedrock Converse API format
+        let mut body = serde_json::json!({
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [{ "text": prompt }]
+                }
+            ],
+            "inferenceConfig": {
+                "maxTokens": max_tokens,
+                "temperature": temperature
+            }
+        });
+        if let Some(sys) = system {
+            body["system"] = serde_json::json!([{ "text": sys }]);
+        }
+        body
+    }
+
+    fn parse_response(&self, response: &serde_json::Value) -> Result<String, String> {
+        // Bedrock Converse: { "output": { "message": { "content": [{ "text": "..." }] } } }
+        response["output"]["message"]["content"][0]["text"]
+            .as_str()
+            .map(|s| s.to_string())
+            .ok_or_else(|| {
+                format!(
+                    "failed to parse Bedrock response: no output.message.content[0].text in: {}",
+                    response
+                )
+            })
+    }
+
+    fn build_headers(&self, _api_key: &str) -> Vec<(String, String)> {
+        // Bedrock uses AWS SigV4 auth; for now we set content-type
+        // and rely on AWS SDK or env credentials.
+        vec![
+            ("content-type".to_string(), "application/json".to_string()),
+            ("accept".to_string(), "application/json".to_string()),
+        ]
+    }
+}
+
 // ── Custom (OpenAI-compatible) ──────────────────────────────────────
 
 pub struct CustomProvider {
@@ -873,6 +1148,9 @@ pub fn create_provider(config: &selfclaw_config::LlmConfig) -> Box<dyn LlmProvid
         ProviderKind::XAI => Box::new(XAIProvider::new(base_url)),
         ProviderKind::Mistral => Box::new(MistralProvider::new(base_url)),
         ProviderKind::DeepSeek => Box::new(DeepSeekProvider::new(base_url)),
+        ProviderKind::Together => Box::new(TogetherProvider::new(base_url)),
+        ProviderKind::Moonshot => Box::new(MoonshotProvider::new(base_url)),
+        ProviderKind::Bedrock => Box::new(BedrockProvider::new(base_url)),
         ProviderKind::Custom => {
             let url = base_url.unwrap_or(ProviderKind::Custom.default_base_url());
             Box::new(CustomProvider::new(url))
@@ -1668,5 +1946,207 @@ mod tests {
         let body = p.build_request("model", 100, 1.5, "hi", None);
         let temp = body["temperature"].as_f64().unwrap();
         assert!((temp - 1.5).abs() < f64::EPSILON);
+    }
+
+    // ── Together AI provider ────────────────────────────────────
+
+    #[test]
+    fn test_together_build_request() {
+        let p = TogetherProvider::new(None);
+        let req = p.build_request(
+            "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+            4096,
+            0.7,
+            "Hello",
+            Some("System"),
+        );
+        assert_eq!(
+            req["model"],
+            "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"
+        );
+    }
+
+    #[test]
+    fn test_together_parse_response() {
+        let p = TogetherProvider::new(None);
+        let resp = serde_json::json!({
+            "choices": [{ "message": { "content": "Together response" } }]
+        });
+        assert_eq!(p.parse_response(&resp).unwrap(), "Together response");
+    }
+
+    #[test]
+    fn test_together_endpoint() {
+        let p = TogetherProvider::new(None);
+        assert_eq!(
+            p.endpoint(),
+            "https://api.together.xyz/v1/chat/completions"
+        );
+    }
+
+    // ── Moonshot provider ───────────────────────────────────────
+
+    #[test]
+    fn test_moonshot_build_request() {
+        let p = MoonshotProvider::new(None);
+        let req = p.build_request("moonshot-v1-8k", 4096, 0.7, "Hello", None);
+        assert_eq!(req["model"], "moonshot-v1-8k");
+    }
+
+    #[test]
+    fn test_moonshot_parse_response() {
+        let p = MoonshotProvider::new(None);
+        let resp = serde_json::json!({
+            "choices": [{ "message": { "content": "Moonshot response" } }]
+        });
+        assert_eq!(p.parse_response(&resp).unwrap(), "Moonshot response");
+    }
+
+    #[test]
+    fn test_moonshot_endpoint() {
+        let p = MoonshotProvider::new(None);
+        assert_eq!(
+            p.endpoint(),
+            "https://api.moonshot.cn/v1/chat/completions"
+        );
+    }
+
+    // ── Bedrock provider ────────────────────────────────────────
+
+    #[test]
+    fn test_bedrock_build_request() {
+        let p = BedrockProvider::new(None);
+        let req = p.build_request(
+            "anthropic.claude-sonnet-4-20250514-v1:0",
+            4096,
+            0.7,
+            "Hello",
+            Some("System"),
+        );
+        assert!(req["messages"][0]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("Hello"));
+        assert_eq!(req["system"][0]["text"], "System");
+        assert_eq!(req["inferenceConfig"]["maxTokens"], 4096);
+    }
+
+    #[test]
+    fn test_bedrock_parse_response() {
+        let p = BedrockProvider::new(None);
+        let resp = serde_json::json!({
+            "output": {
+                "message": {
+                    "role": "assistant",
+                    "content": [{ "text": "Bedrock response" }]
+                }
+            }
+        });
+        assert_eq!(p.parse_response(&resp).unwrap(), "Bedrock response");
+    }
+
+    #[test]
+    fn test_bedrock_endpoint_has_model_placeholder() {
+        let p = BedrockProvider::new(None);
+        assert!(p.endpoint().contains("{model}"));
+    }
+
+    // ── ProviderKind additional tests ───────────────────────────
+
+    #[test]
+    fn test_provider_kind_from_str_new_providers() {
+        assert_eq!(
+            ProviderKind::from_str("together"),
+            ProviderKind::Together
+        );
+        assert_eq!(
+            ProviderKind::from_str("together-ai"),
+            ProviderKind::Together
+        );
+        assert_eq!(
+            ProviderKind::from_str("togetherai"),
+            ProviderKind::Together
+        );
+        assert_eq!(
+            ProviderKind::from_str("moonshot"),
+            ProviderKind::Moonshot
+        );
+        assert_eq!(ProviderKind::from_str("kimi"), ProviderKind::Moonshot);
+        assert_eq!(
+            ProviderKind::from_str("bedrock"),
+            ProviderKind::Bedrock
+        );
+        assert_eq!(
+            ProviderKind::from_str("amazon-bedrock"),
+            ProviderKind::Bedrock
+        );
+        assert_eq!(
+            ProviderKind::from_str("aws-bedrock"),
+            ProviderKind::Bedrock
+        );
+    }
+
+    #[test]
+    fn test_provider_kind_all() {
+        let all = ProviderKind::all();
+        assert_eq!(all.len(), 12);
+        assert!(all.contains(&ProviderKind::Anthropic));
+        assert!(all.contains(&ProviderKind::Together));
+        assert!(all.contains(&ProviderKind::Moonshot));
+        assert!(all.contains(&ProviderKind::Bedrock));
+        // Custom is not in the "all" list
+        assert!(!all.contains(&ProviderKind::Custom));
+    }
+
+    #[test]
+    fn test_provider_kind_name() {
+        assert_eq!(ProviderKind::Anthropic.name(), "anthropic");
+        assert_eq!(ProviderKind::OpenAI.name(), "openai");
+        assert_eq!(ProviderKind::Together.name(), "together");
+        assert_eq!(ProviderKind::Moonshot.name(), "moonshot");
+        assert_eq!(ProviderKind::Bedrock.name(), "bedrock");
+        assert_eq!(ProviderKind::Custom.name(), "custom");
+    }
+
+    #[test]
+    fn test_create_provider_together() {
+        let config = selfclaw_config::LlmConfig {
+            provider: "together".to_string(),
+            model: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo".to_string(),
+            max_tokens: 4096,
+            temperature: 0.7,
+            api_key: None,
+            base_url: None,
+        };
+        let p = create_provider(&config);
+        assert_eq!(p.kind(), ProviderKind::Together);
+    }
+
+    #[test]
+    fn test_create_provider_moonshot() {
+        let config = selfclaw_config::LlmConfig {
+            provider: "moonshot".to_string(),
+            model: "moonshot-v1-8k".to_string(),
+            max_tokens: 4096,
+            temperature: 0.7,
+            api_key: None,
+            base_url: None,
+        };
+        let p = create_provider(&config);
+        assert_eq!(p.kind(), ProviderKind::Moonshot);
+    }
+
+    #[test]
+    fn test_create_provider_bedrock() {
+        let config = selfclaw_config::LlmConfig {
+            provider: "bedrock".to_string(),
+            model: "anthropic.claude-sonnet-4-20250514-v1:0".to_string(),
+            max_tokens: 4096,
+            temperature: 0.7,
+            api_key: None,
+            base_url: None,
+        };
+        let p = create_provider(&config);
+        assert_eq!(p.kind(), ProviderKind::Bedrock);
     }
 }
