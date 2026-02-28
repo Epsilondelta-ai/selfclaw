@@ -160,6 +160,25 @@ pub async fn execute(config: SelfClawConfig, memory_dir: &str) -> anyhow::Result
         }
     }
 
+    // Start WebSocket server for web UI if enabled
+    let _ws_server = if config.communication.web_ui_enabled {
+        let ws = selfclaw_comms::WebSocketServer::new(config.communication.web_ui_port);
+        let inbound_tx = gateway.inbound_sender();
+        match ws.start(inbound_tx) {
+            Ok(handle) => {
+                gateway.register_channel(handle);
+                println!("WebSocket server active (port {})", config.communication.web_ui_port);
+                Some(ws)
+            }
+            Err(e) => {
+                eprintln!("Warning: WebSocket server failed to start: {}", e);
+                None
+            }
+        }
+    } else {
+        None
+    };
+
     println!();
     println!("SelfClaw is waking up. The journey begins.");
     println!("Press Ctrl+C to stop.");
