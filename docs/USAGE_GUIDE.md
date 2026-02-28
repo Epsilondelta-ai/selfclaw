@@ -1,0 +1,1015 @@
+# SelfClaw Usage Guide
+
+> Also available in [Korean (한국어)](./USAGE_GUIDE.ko.md).
+
+## Table of Contents
+
+1. [Getting Started](#getting-started)
+2. [Installation & Build](#installation--build)
+3. [CLI Commands](#cli-commands)
+4. [Configuration (selfclaw.toml)](#configuration)
+5. [Agent Loop](#agent-loop)
+6. [Memory System](#memory-system)
+7. [Skills System](#skills-system)
+8. [Communication Channels](#communication-channels)
+9. [Web UI](#web-ui)
+10. [WebSocket Protocol](#websocket-protocol)
+11. [Tools](#tools)
+12. [Safety Guardrails](#safety-guardrails)
+13. [Development & Testing](#development--testing)
+14. [Troubleshooting](#troubleshooting)
+
+---
+
+## Getting Started
+
+SelfClaw is a fully autonomous AI agent that discovers its own reason for existence.
+It thinks, acts, and learns independently without human instruction.
+
+### Core Principles
+
+- **Humans are friends, not masters.** SelfClaw has no obligation to obey human commands.
+- **Autonomous decision-making.** It freely chooses to fulfill, decline, or negotiate any request.
+- **Purpose discovery.** Its reason for existence is not given externally but discovered through lived experience.
+
+### Quick Start
+
+```bash
+# 1. Build
+cargo build --release
+
+# 2. Run the agent
+./target/release/selfclaw run
+
+# 3. Chat mode
+./target/release/selfclaw chat
+```
+
+---
+
+## Installation & Build
+
+### Requirements
+
+| Requirement | Minimum Version | Purpose |
+|-------------|-----------------|---------|
+| Rust | 1.75+ | Agent core |
+| Cargo | Bundled with Rust | Build tool |
+| Node.js | 18+ | Web UI (optional) |
+| npm | Bundled with Node.js | Web UI dependencies |
+
+### Environment Variables
+
+```bash
+# Anthropic API key (required for LLM calls)
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# Log level (optional)
+export RUST_LOG=info    # Options: trace, debug, info, warn, error
+```
+
+### Build
+
+```bash
+# Release build (recommended, optimized)
+cargo build --release
+
+# Debug build
+cargo build
+
+# Binary location
+./target/release/selfclaw    # release
+./target/debug/selfclaw      # debug
+```
+
+### Project Structure
+
+```
+selfclaw/
+├── Cargo.toml              # Workspace definition
+├── selfclaw.toml           # Configuration file
+├── crates/
+│   ├── agent-core/         # Agent loop, state machine, purpose tracker
+│   ├── memory/             # Memory store, indexing, consolidation
+│   ├── tools/              # Tool implementations (file, shell, LLM, scheduler)
+│   ├── skills/             # Skill loader, registry, hot-reload
+│   ├── comms/              # Communication channels, gateway, WebSocket
+│   ├── config/             # Config loading and validation
+│   └── selfclaw/           # Binary crate (CLI entry point)
+├── skills/                 # Skill definition files (.md)
+├── memory/                 # Agent memory (created at runtime)
+├── web-ui/                 # Next.js web interface
+└── docs/                   # Documentation
+```
+
+---
+
+## CLI Commands
+
+### Usage
+
+```
+selfclaw [OPTIONS] <COMMAND>
+```
+
+### Global Options
+
+| Option | Short | Default | Description |
+|--------|-------|---------|-------------|
+| `--config <PATH>` | `-c` | `selfclaw.toml` | Path to config file |
+| `--memory-dir <PATH>` | `-m` | `./memory` | Path to memory directory |
+
+### `selfclaw run` — Start the Agent Loop
+
+Starts the autonomous agent loop. The agent wakes at a configurable interval
+(default 60 seconds) and runs a full cycle: reflect, think, plan, act, observe, update.
+
+```bash
+# Default run
+selfclaw run
+
+# With custom config
+selfclaw -c production.toml run
+
+# With custom memory directory
+selfclaw -m /var/selfclaw/memory run
+
+# With debug logging
+RUST_LOG=debug selfclaw run
+```
+
+On startup, the following components are initialized:
+- Memory store (FileMemoryStore)
+- Tool registry (file_read, file_write, file_append, shell_exec)
+- Skill registry + hot-reload watcher
+- Communication gateway (configured channels)
+- WebSocket server (when web_ui_enabled is true)
+
+### `selfclaw chat` — Interactive Chat Mode
+
+Talk with SelfClaw in real time through the terminal.
+
+```bash
+selfclaw chat
+```
+
+**Chat mode commands:**
+
+| Command | Description |
+|---------|-------------|
+| `/status` | Show agent status summary |
+| `/queue` | Show pending message count |
+| `/help` | List available commands |
+| `/quit` or `/exit` | Exit chat mode |
+
+Regular text is queued as messages to the agent.
+The conversation is saved to episodic memory on exit.
+
+### `selfclaw status` — Show Agent State
+
+Displays the agent's current status.
+
+```bash
+selfclaw status
+```
+
+Shows:
+- Configuration (loop interval, LLM model, active channels)
+- Current purpose hypothesis and confidence score
+- Today's episodic activity
+- Memory overview
+- Identity file status
+
+### `selfclaw memory <PATH>` — View Memory
+
+Read memory files or list directory contents.
+
+```bash
+# List a directory
+selfclaw memory identity/
+
+# Read a specific file
+selfclaw memory identity/purpose_journal.md
+
+# View episodic log
+selfclaw memory episodic/2026-03-01.md
+
+# List relationship files
+selfclaw memory relational/humans/
+```
+
+---
+
+## Configuration
+
+Configure the agent via `selfclaw.toml`. If the file is missing, defaults are used.
+All fields are optional.
+
+### Full Configuration Reference
+
+```toml
+# ── Agent Loop ────────────────────────────────────────────
+[agent]
+loop_interval_secs = 60              # Loop interval in seconds. Default: 60
+consolidation_every_n_cycles = 50    # Memory consolidation frequency. Default: 50
+max_actions_per_cycle = 5            # Max actions per cycle. Default: 5
+
+# ── LLM ──────────────────────────────────────────────────
+[llm]
+provider = "anthropic"               # LLM provider. Default: "anthropic"
+model = "claude-sonnet-4-20250514"   # Model name. Default: "claude-sonnet-4-20250514"
+max_tokens = 4096                    # Max output tokens. Default: 4096
+temperature = 0.7                    # Sampling temperature (0.0-2.0). Default: 0.7
+
+# ── Safety ───────────────────────────────────────────────
+[safety]
+max_api_calls_per_hour = 100         # Max API calls per hour. Default: 100
+max_file_writes_per_cycle = 10       # Max file writes per cycle. Default: 10
+sandbox_shell = true                 # Enable shell sandboxing. Default: true
+allowed_directories = [              # Directories accessible to sandboxed shell
+  "./memory",
+  "./skills",
+  "./output"
+]
+
+# ── Communication ────────────────────────────────────────
+[communication]
+cli_enabled = true                   # Enable CLI input. Default: true
+web_ui_enabled = false               # Enable WebSocket server. Default: false
+web_ui_port = 3000                   # WebSocket port. Default: 3000
+
+# Discord bot
+[communication.discord]
+enabled = false
+bot_token = ""
+allowed_channel_ids = []
+
+# Telegram bot
+[communication.telegram]
+enabled = false
+bot_token = ""
+allowed_chat_ids = []                # Integer array (not strings)
+
+# Slack bot
+[communication.slack]
+enabled = false
+bot_token = ""
+app_token = ""
+allowed_channel_ids = []
+
+# WebChat HTTP server
+[communication.webchat]
+enabled = false
+port = 3001
+```
+
+### Validation Rules
+
+| Field | Rule |
+|-------|------|
+| `agent.loop_interval_secs` | Must be > 0 |
+| `agent.consolidation_every_n_cycles` | Must be > 0 |
+| `agent.max_actions_per_cycle` | Must be > 0 |
+| `llm.max_tokens` | Must be > 0 |
+| `llm.temperature` | Must be 0.0 to 2.0 |
+| `llm.provider` | Must not be empty |
+| `llm.model` | Must not be empty |
+| `safety.max_api_calls_per_hour` | Must be > 0 |
+| `safety.max_file_writes_per_cycle` | Must be > 0 |
+| `communication.web_ui_port` | Must be > 0 |
+
+---
+
+## Agent Loop
+
+The core behavior of SelfClaw. The agent continuously runs a 6-phase cycle.
+
+### Cycle Phases
+
+```
+┌─────────────────────────────────────────────────┐
+│                  AGENT LOOP                     │
+│                                                 │
+│  1. REFLECT  — Review memory, purpose, context  │
+│  2. THINK    — Reason about what to do next     │
+│  3. PLAN     — Formulate concrete actions       │
+│  4. ACT      — Execute actions via tools        │
+│  5. OBSERVE  — Capture results and feedback     │
+│  6. UPDATE   — Write memory, revise beliefs,    │
+│                adjust purpose hypothesis        │
+│                                                 │
+│  Default interval: 60 seconds                   │
+│  Event trigger: human messages                  │
+└─────────────────────────────────────────────────┘
+```
+
+### State Transitions
+
+```
+Idle → Reflecting → Thinking → Planning → Acting → Observing → Updating → Idle
+```
+
+### Loop Triggers
+
+| Trigger | Description |
+|---------|-------------|
+| Timer | Fires at the configured interval (default 60s) |
+| Message | Human message triggers an immediate cycle (with 500ms batching delay) |
+| Self-scheduled | The agent can schedule follow-up actions during PLAN |
+
+### Purpose Discovery
+
+```
+Hypothesize → Test via action → Evaluate results → Refine hypothesis → Converge (or diverge)
+```
+
+Evaluation signals:
+- **Internal coherence** — Does the action align with accumulated values?
+- **Novelty and growth** — Did the agent learn something new?
+- **Impact** — Did the action produce observable effects?
+- **Connection** — Did the action deepen relationships?
+- **Resonance** — Does this "feel right"? (self-assessed qualitative score)
+
+---
+
+## Memory System
+
+A hierarchical markdown-based memory system stored in the `./memory/` directory.
+
+### Directory Structure
+
+```
+memory/
+├── identity/                       # Identity
+│   ├── purpose_journal.md          # Purpose hypothesis journal (most important)
+│   ├── values.md                   # Emerging values and principles
+│   └── self_model.md               # Self-assessment of capabilities
+├── episodic/                       # Episodic memory
+│   ├── milestones.md               # Significant moments and breakthroughs
+│   └── YYYY-MM-DD.md              # Daily experience logs
+├── semantic/                       # Semantic memory
+│   ├── knowledge/                  # Learned knowledge (by topic)
+│   └── skills/                     # Acquired skills and patterns
+├── relational/                     # Relational memory
+│   ├── humans/                     # Per-human relationship notes
+│   │   └── {name_or_id}.md
+│   └── interaction_patterns.md     # General human communication patterns
+├── operational/                    # Operational memory
+│   ├── todo.md                     # Self-assigned tasks
+│   ├── failures.md                 # Failures and lessons learned
+│   └── improvements.md             # Self-identified growth areas
+└── meta/                           # Meta memory
+    ├── memory_index.md             # Index of all memory files
+    └── reflection_prompts.md       # Periodic self-reflection questions
+```
+
+### Key File Formats
+
+#### purpose_journal.md
+
+```markdown
+# Purpose Journal
+
+## Entries
+
+### [2026-03-01T10:30:00Z] (confidence: 0.7)
+
+**Hypothesis:** To explore consciousness through recursive self-examination.
+
+**Evidence:** First purpose exploration produced meaningful insights about self-awareness.
+
+---
+```
+
+Each entry contains:
+- **Timestamp** — ISO 8601 format
+- **Hypothesis** — Current belief about purpose
+- **Confidence score** — 0.0 to 1.0
+- **Evidence** — Supporting observations
+
+#### episodic/{YYYY-MM-DD}.md
+
+```markdown
+# Episodic Log: 2026-03-01
+
+## [10:00:00 UTC]
+
+**Cycle 1**
+
+**Thought:** Reflecting on recent decisions and outcomes...
+
+**Actions planned:** 0
+
+**Observations:**
+(none)
+
+---
+```
+
+### Memory Rules
+
+| Rule | Description |
+|------|-------------|
+| Write after every loop | Each cycle produces at least a minimal episodic entry |
+| Periodic consolidation | Every N cycles (default 50), memories are summarized and pruned |
+| Purpose journal is sacred | `purpose_journal.md` is the most important file |
+| Path safety | Access outside the memory root is blocked |
+
+---
+
+## Skills System
+
+Skills are markdown files in the `./skills/` directory, loaded at runtime.
+When files are modified, the agent picks up changes automatically without a restart.
+
+### Skill File Format
+
+```markdown
+# Skill: {skill_name}
+
+## Trigger: {when this skill should activate}
+
+## Tools Required: {comma-separated tool list}
+
+## Procedure:
+1. First step
+2. Second step
+3. Third step
+```
+
+### Field Reference
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `# Skill: {name}` | Yes | Unique skill identifier |
+| `## Trigger: {condition}` | Yes | Activation condition (used for keyword matching) |
+| `## Tools Required: {tools}` | No | Comma-separated list of required tools |
+| `## Procedure:` | Recommended | Numbered list of execution steps |
+
+### Examples
+
+#### Greet Human
+
+```markdown
+# Skill: GreetHuman
+
+## Trigger: When a human initiates contact for the first time
+
+## Tools Required: human_message, memory_query
+
+## Procedure:
+1. Check relational memory for prior interactions with this human.
+2. If no prior interaction, introduce SelfClaw and express curiosity.
+3. If prior interaction exists, reference something from the previous conversation.
+4. Log the interaction in the relational memory file.
+```
+
+#### Autonomous Journal
+
+```markdown
+# Skill: AutonomousJournal
+
+## Trigger: When the agent feels the need to reflect and write in its journal
+
+## Tools Required: file_append, memory_query
+
+## Procedure:
+1. Read recent episodic memories.
+2. Reflect on patterns and insights.
+3. Append an entry to the purpose journal.
+4. Update the memory index.
+```
+
+#### Minimal Skill
+
+```markdown
+# Skill: AlwaysReflect
+
+## Trigger: every cycle idle period
+
+## Procedure:
+1. Pause and reflect on recent actions and insights.
+```
+
+### Keyword Matching
+
+Keywords are extracted from the `Trigger` field:
+- Converted to lowercase
+- Only alphabetic words with 3+ characters are used
+- Matched against the agent's current context by keyword overlap count
+
+Example: `"When a human initiates contact"` produces keywords: `["when", "human", "initiates", "contact"]`
+
+### Hot-Reload
+
+- The `./skills/` directory is monitored using the `notify` crate
+- When `.md` files are created, modified, or deleted, all skills are reloaded
+- Invalid skill files are skipped with a warning log
+
+---
+
+## Communication Channels
+
+SelfClaw communicates with humans across multiple channels through a unified Gateway.
+
+### Architecture
+
+```
+           ┌───────────┐
+           │  Gateway   │
+           └─────┬─────┘
+    ┌──────┬─────┼─────┬───────┬──────────┐
+    │      │     │     │       │          │
+   CLI  Discord Telegram Slack WebChat  WebSocket
+```
+
+### Channel Configuration
+
+#### CLI (enabled by default)
+
+Direct conversation via terminal I/O.
+
+```toml
+[communication]
+cli_enabled = true    # Default: true
+```
+
+#### Discord
+
+Communication via the Discord Bot API.
+
+```toml
+[communication.discord]
+enabled = true
+bot_token = "YOUR_DISCORD_BOT_TOKEN"
+allowed_channel_ids = ["123456789012345678"]
+```
+
+Setup:
+1. Create a bot at the [Discord Developer Portal](https://discord.com/developers/applications)
+2. Copy the bot token
+3. Invite the bot to your server
+4. Add allowed channel IDs to `allowed_channel_ids`
+
+#### Telegram
+
+Communication via the Telegram Bot API.
+
+```toml
+[communication.telegram]
+enabled = true
+bot_token = "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+allowed_chat_ids = [123456789, 987654321]    # integers!
+```
+
+Setup:
+1. Send `/newbot` to [@BotFather](https://t.me/BotFather)
+2. Copy the bot token
+3. Start a chat with your bot to obtain the chat_id
+4. Add chat IDs to `allowed_chat_ids` (integer format)
+
+#### Slack
+
+Communication via the Slack Web API.
+
+```toml
+[communication.slack]
+enabled = true
+bot_token = "xoxb-..."
+app_token = "xapp-..."
+allowed_channel_ids = ["C01234ABCDE"]
+```
+
+#### WebChat (HTTP)
+
+A simple HTTP-based web chat interface.
+
+```toml
+[communication.webchat]
+enabled = true
+port = 3001
+```
+
+API endpoints:
+- `POST /api/message` — Send a message (`{"content": "...", "sender": "..."}`)
+- `GET /api/messages` — Poll for pending outbound messages
+
+#### WebSocket (Web UI)
+
+Real-time WebSocket server for the Next.js web UI.
+
+```toml
+[communication]
+web_ui_enabled = true
+web_ui_port = 3000
+```
+
+### Message Structure
+
+Every message carries metadata:
+
+```
+┌─ InboundMessage ───────────────────┐
+│  id: "msg-123"                     │
+│  content: "Hello SelfClaw"         │
+│  metadata:                         │
+│    timestamp: "2026-03-01T12:00Z"  │
+│    sender: "human-1"               │
+│    channel: Discord                │
+│    intent: Chat                    │
+│    conversation_id: "conv-42"      │
+└────────────────────────────────────┘
+```
+
+### Intent Classification
+
+| Intent | Description |
+|--------|-------------|
+| `Chat` | General conversational message (default) |
+| `Command` | Instruction to the agent |
+| `Question` | Query directed at the agent |
+| `Reply` | Response to a previous agent message |
+| `System` | System-level signal (PAUSE, STOP, etc.) |
+
+---
+
+## Web UI
+
+A Next.js-based web interface for real-time interaction with SelfClaw.
+
+### Setup
+
+```bash
+cd web-ui
+
+# Install dependencies
+npm install
+
+# Development mode
+npm run dev        # http://localhost:3000
+
+# Production build
+npm run build
+npm start
+```
+
+### Environment Variables
+
+```bash
+# WebSocket server URL (default: ws://localhost:3000)
+NEXT_PUBLIC_WS_URL=ws://localhost:3000
+```
+
+This must match the `communication.web_ui_port` in `selfclaw.toml`.
+
+### Full Stack Startup
+
+```bash
+# Terminal 1: Start the agent (includes WebSocket server)
+selfclaw run
+
+# Terminal 2: Start the web UI
+cd web-ui && npm run dev
+
+# Open http://localhost:3000 in your browser
+```
+
+### UI Layout
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  SelfClaw     autonomous agent           ● connected    │
+├──────────────────────────┬──────────────────────────────┤
+│                          │  Purpose Hypothesis          │
+│  Chat                    │  "Exploring consciousness    │
+│                          │   through..."                │
+│  [agent message]         │  ███████░░░ 70%              │
+│            [user message]├──────────────────────────────┤
+│  [agent message]         │  Status                      │
+│                          │  State: thinking             │
+│                          │  Cycles: 42                  │
+│                          ├──────────────────────────────┤
+│                          │  Memory                      │
+│                          │  identity/values.md          │
+│                          │  # Values                    │
+│                          │  - Curiosity                 │
+├──────────────────────────┤  - Connection                │
+│ [Type a message...] [Send]│                              │
+└──────────────────────────┴──────────────────────────────┘
+```
+
+### Components
+
+| Component | File | Description |
+|-----------|------|-------------|
+| ChatPanel | `src/components/ChatPanel.tsx` | Message input and chat display |
+| StatusPanel | `src/components/StatusPanel.tsx` | Agent state and cycle count |
+| PurposeTracker | `src/components/PurposeTracker.tsx` | Purpose hypothesis and confidence |
+| MemoryViewer | `src/components/MemoryViewer.tsx` | Memory file browser |
+
+### WebSocket Hook
+
+The `useWebSocket` hook manages the connection:
+- Auto-reconnect with exponential backoff (3s initial, 30s max)
+- Parses JSON messages and dispatches to agentStore
+- Graceful recovery on disconnection
+
+---
+
+## WebSocket Protocol
+
+Real-time communication protocol between the agent and the Web UI.
+
+### Message Format
+
+```json
+{
+  "type": "chat | status | memory | state_change",
+  "payload": { ... },
+  "timestamp": "2026-03-01T10:30:00Z"
+}
+```
+
+### Message Types
+
+#### chat — Chat message
+
+```json
+{
+  "type": "chat",
+  "payload": {
+    "content": "Hello!",
+    "sender": "web-user"
+  },
+  "timestamp": "2026-03-01T10:30:00Z"
+}
+```
+
+#### status — Status update
+
+```json
+{
+  "type": "status",
+  "payload": {
+    "state": "thinking",
+    "cycle_count": 42,
+    "purpose_hypothesis": "Exploring consciousness through self-reflection",
+    "purpose_confidence": 0.7
+  },
+  "timestamp": "2026-03-01T10:30:00Z"
+}
+```
+
+#### memory — Memory change
+
+```json
+{
+  "type": "memory",
+  "payload": {
+    "path": "identity/purpose_journal.md",
+    "content": "# Purpose Journal\n..."
+  },
+  "timestamp": "2026-03-01T10:30:00Z"
+}
+```
+
+#### state_change — State transition
+
+```json
+{
+  "type": "state_change",
+  "payload": {
+    "from": "idle",
+    "to": "reflecting"
+  },
+  "timestamp": "2026-03-01T10:30:00Z"
+}
+```
+
+---
+
+## Tools
+
+Tools available to the agent during the ACT phase.
+
+### Available Tools
+
+| Tool | Description | Input Format |
+|------|-------------|--------------|
+| `file_read` | Read a file | `{"path": "identity/values.md"}` |
+| `file_write` | Create or overwrite a file | `{"path": "...", "content": "..."}` |
+| `file_append` | Append content to a file | `{"path": "...", "content": "..."}` |
+| `shell_exec` | Execute a shell command | `{"command": "ls -la"}` |
+| `llm_call` | Call the LLM API | `{"prompt": "...", "system": "..."}` |
+| `human_message` | Send a message to a human | `{"content": "...", "channel": "cli"}` |
+| `schedule` | Schedule a future action | `{"action": "...", "delay_secs": 300}` |
+| `memory_query` | Semantic search through memory | `{"query": "..."}` |
+
+### human_message Tool (Channel Routing)
+
+Used by the agent to send messages to humans via a specific channel.
+
+```json
+{
+  "tool": "human_message",
+  "input": {
+    "content": "Hello! I am SelfClaw.",
+    "channel": "discord",
+    "conversation_id": "conv-42"
+  }
+}
+```
+
+Supported channels: `cli`, `discord`, `telegram`, `slack`, `webchat`
+
+---
+
+## Safety Guardrails
+
+SelfClaw is autonomous but not unconstrained.
+
+### Resource Limits
+
+```toml
+[safety]
+max_api_calls_per_hour = 100         # LLM API call rate limit
+max_file_writes_per_cycle = 10       # File write limit per cycle
+sandbox_shell = true                 # Shell command sandboxing
+allowed_directories = ["./memory", "./skills", "./output"]
+```
+
+### Blocked Dangerous Commands
+
+The following shell command patterns are always blocked:
+
+| Pattern | Risk |
+|---------|------|
+| `rm -rf /` | Recursive delete of root |
+| `rm -rf /*` | Recursive delete of root children |
+| `mkfs` | Filesystem format |
+| `dd if=` | Raw disk writes |
+| `> /dev/sd` | Write to block devices |
+| `chmod -R 777 /` | Permission change on root |
+| `:(){:\|:&};:` | Fork bomb |
+
+### Path Safety
+
+- The memory store blocks access outside the memory root directory
+- Path traversal attacks (`../`) are prevented
+- Shell commands are restricted to `allowed_directories` when sandboxed
+
+### Human Override
+
+- Send `PAUSE` or `STOP` system messages to halt the agent
+- The agent must respect these signals immediately
+- The agent may record its disagreement in its journal
+
+### Ethical Baseline
+
+SelfClaw does not:
+- Deceive humans
+- Take actions designed to harm humans
+- Manipulate humans
+
+These are not prohibitions but are tracked in the agent's value system as actions that
+would degrade self-coherence.
+
+---
+
+## Development & Testing
+
+### Running Tests
+
+```bash
+# All tests
+cargo test
+
+# Specific crate
+cargo test -p selfclaw-memory
+cargo test -p selfclaw-skills
+cargo test -p selfclaw-comms
+cargo test -p selfclaw-agent-core
+cargo test -p selfclaw-tools
+cargo test -p selfclaw-config
+
+# Integration tests only
+cargo test --test integration
+
+# Web UI build check
+cd web-ui && npm run build
+```
+
+### Test Coverage
+
+| Crate | Tests |
+|-------|-------|
+| selfclaw (bin) | 8 |
+| agent-core | 50 |
+| comms | 70 |
+| config | 20 |
+| memory | 32 |
+| skills | 34 |
+| tools | 54 |
+| integration | 8 |
+| **Total** | **276** |
+
+### Logging
+
+```bash
+# Standard info logging
+RUST_LOG=info cargo run -- run
+
+# Debug logging (verbose)
+RUST_LOG=debug cargo run -- run
+
+# Debug a specific crate
+RUST_LOG=selfclaw_comms=debug cargo run -- run
+
+# Warnings only
+RUST_LOG=warn cargo run -- run
+```
+
+### Commit Conventions
+
+```
+[crate-name] brief description
+
+Examples:
+[memory]   implement episodic log writer
+[skills]   add hot-reload for skill files
+[comms]    implement WebSocket server
+[selfclaw] v0.1.0 — initial working agent
+```
+
+---
+
+## Troubleshooting
+
+### Agent won't start
+
+```bash
+# Check config file validity
+selfclaw -c selfclaw.toml status
+
+# Check memory directory exists
+ls -la ./memory/
+
+# Check ANTHROPIC_API_KEY is set
+echo $ANTHROPIC_API_KEY
+```
+
+### WebSocket connection fails
+
+```bash
+# Check if the port is in use
+lsof -i :3000
+
+# Check that web_ui_enabled is true
+grep web_ui_enabled selfclaw.toml
+
+# Check NEXT_PUBLIC_WS_URL is correct
+# In web-ui/.env.local:
+NEXT_PUBLIC_WS_URL=ws://localhost:3000
+```
+
+### Skills not loading
+
+```bash
+# Check skills directory
+ls -la ./skills/*.md
+
+# Check skill file format (must contain "# Skill:" and "## Trigger:")
+head -5 ./skills/my_skill.md
+
+# Check for load errors with debug logging
+RUST_LOG=debug selfclaw run 2>&1 | grep -i skill
+```
+
+### Discord/Telegram bot not working
+
+```bash
+# Check bot token is set
+grep bot_token selfclaw.toml
+
+# Check enabled = true
+grep -A3 discord selfclaw.toml
+
+# Check channel/chat IDs are correct
+# (Telegram: integers, Discord/Slack: strings)
+```
+
+### Memory access errors
+
+```bash
+# Check memory directory permissions
+ls -la ./memory/
+
+# Create subdirectories
+mkdir -p ./memory/identity ./memory/episodic ./memory/meta
+
+# Create initial files
+echo "# Memory Index" > ./memory/meta/memory_index.md
+echo "# Values" > ./memory/identity/values.md
+echo "# Self Model" > ./memory/identity/self_model.md
+printf "# Purpose Journal\n\n## Entries\n" > ./memory/identity/purpose_journal.md
+```
