@@ -1,10 +1,12 @@
 use std::path::Path;
+use std::sync::{Arc, Mutex};
 
 use selfclaw_agent_core::loop_runner::{AgentLoop, LlmCaller};
 use selfclaw_comms::cli::CliChannel;
 use selfclaw_comms::Gateway;
 use selfclaw_config::SelfClawConfig;
 use selfclaw_memory::store::FileMemoryStore;
+use selfclaw_skills::{SkillRegistry, SkillWatcher};
 use selfclaw_tools::file::{FileAppendTool, FileReadTool, FileWriteTool};
 use selfclaw_tools::registry::ToolRegistry;
 use selfclaw_tools::shell::ShellExecTool;
@@ -70,6 +72,31 @@ pub async fn execute(config: SelfClawConfig, memory_dir: &str) -> anyhow::Result
     tools.register(Box::new(ShellExecTool::from_config(&config.safety)));
 
     println!("Tools registered: {:?}", tools.names());
+
+    // Load skills from skills/ directory
+    let skills_dir = Path::new("./skills");
+    let skill_registry = Arc::new(Mutex::new(SkillRegistry::new()));
+    let mut skill_watcher = SkillWatcher::new(skills_dir, skill_registry.clone());
+
+    match skill_watcher.initial_load() {
+        Ok(count) => println!("Skills loaded: {}", count),
+        Err(e) => eprintln!("Warning: Failed to load skills: {}", e),
+    }
+
+    // Start watching for skill file changes (hot-reload)
+    match skill_watcher.start_watching() {
+        Ok(()) => println!("Skills hot-reload active"),
+        Err(e) => eprintln!("Warning: Skills watcher failed to start: {}", e),
+    }
+
+    // List loaded skill names
+    {
+        let reg = skill_registry.lock().unwrap();
+        let names = reg.names();
+        if !names.is_empty() {
+            println!("Available skills: {:?}", names);
+        }
+    }
 
     // Set up gateway with CLI channel
     let mut gateway = Gateway::new();
@@ -141,5 +168,12 @@ pub async fn execute(config: SelfClawConfig, memory_dir: &str) -> anyhow::Result
     let llm = AnthropicLlmCaller::new(&config);
     let mut agent = AgentLoop::new(config, store, tools, llm).with_gateway(gateway);
 
-    agent.run().await.map_err(|e| anyhow::anyhow!(e))
+    let result = agent.run().await.map_err(|e| anyhow::anyhow!(e));
+
+    // Keep skill_watcher alive for the duration of the agent loop.
+    // Dropping it stops the filesystem watcher.
+    skill_watcher.stop_watching();
+    drop(skill_watcher);
+
+    result
 }
