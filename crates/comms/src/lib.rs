@@ -1,6 +1,7 @@
 pub mod message;
 pub mod channel;
 pub mod gateway;
+pub mod queue;
 pub mod cli;
 pub mod discord;
 pub mod telegram;
@@ -10,6 +11,7 @@ pub mod webchat;
 pub use message::{ChannelKind, InboundMessage, OutboundMessage, MessageMetadata, MessageIntent};
 pub use channel::{ChannelError, ChannelHandle};
 pub use gateway::Gateway;
+pub use queue::ChatQueue;
 
 pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
