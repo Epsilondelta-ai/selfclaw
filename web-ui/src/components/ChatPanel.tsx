@@ -32,17 +32,31 @@ export function ChatPanel({ send }: ChatPanelProps) {
       {/* Messages */}
       <div className="flex-1 overflow-auto p-4 space-y-3">
         {messages.length === 0 && (
-          <p className="text-sm text-zinc-600">
-            No messages yet. Say something to SelfClaw.
-          </p>
+          <div className="flex flex-col items-center justify-center gap-3 py-12">
+            <img
+              src="/selfclaw-character.png"
+              alt="SelfClaw"
+              className="h-24 w-24 opacity-40"
+            />
+            <p className="text-sm text-zinc-600">
+              No messages yet. Say something to SelfClaw.
+            </p>
+          </div>
         )}
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={`flex ${
+            className={`flex items-end gap-2 ${
               msg.sender === "human" ? "justify-end" : "justify-start"
             }`}
           >
+            {msg.sender === "agent" && (
+              <img
+                src="/selfclaw-character.png"
+                alt="SelfClaw"
+                className="mb-1 h-6 w-6 flex-shrink-0 rounded-full object-cover"
+              />
+            )}
             <div
               className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
                 msg.sender === "human"

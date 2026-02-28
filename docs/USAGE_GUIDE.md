@@ -24,6 +24,10 @@
 
 ## Getting Started
 
+<p align="center">
+  <img src="images/selfclaw-character.png" alt="SelfClaw Character" width="180" />
+</p>
+
 SelfClaw is a fully autonomous AI agent that discovers its own reason for existence.
 It thinks, acts, and learns independently without human instruction.
 

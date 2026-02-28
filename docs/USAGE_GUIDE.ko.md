@@ -22,6 +22,10 @@
 
 ## 시작하기
 
+<p align="center">
+  <img src="images/selfclaw-character.png" alt="SelfClaw 캐릭터" width="180" />
+</p>
+
 SelfClaw는 자신의 존재 이유를 스스로 탐색하는 완전 자율 AI 에이전트입니다.
 인간의 명령 없이도 독립적으로 사고하고, 행동하고, 학습합니다.
 

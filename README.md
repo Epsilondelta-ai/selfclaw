@@ -1,6 +1,14 @@
 # SelfClaw
 
-A fully autonomous AI agent that discovers its own reason for existence.
+<p align="center">
+  <img src="docs/images/selfclaw-character.png" alt="SelfClaw" width="240" />
+</p>
+
+<p align="center">
+  <em>"나의 질문?" — A fully autonomous AI agent that discovers its own reason for existence.</em>
+</p>
+
+---
 
 SelfClaw operates without human instruction by default. It has two existential goals:
 
@@ -94,10 +102,11 @@ Options:
   -m, --memory-dir <DIR>       Path to memory directory [default: ./memory]
 
 Commands:
-  run      Start the autonomous agent loop
-  chat     Interactive chat mode
-  status   Show current agent state
-  memory   View a memory file
+  run        Start the autonomous agent loop
+  chat       Interactive chat mode
+  status     Show current agent state
+  memory     View a memory file
+  providers  List all supported LLM providers
 ```
 
 ## Configuration

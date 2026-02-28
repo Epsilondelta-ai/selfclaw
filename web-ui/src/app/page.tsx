@@ -16,6 +16,11 @@ export default function Home() {
       {/* Header */}
       <header className="flex items-center justify-between border-b border-zinc-800 px-6 py-3">
         <div className="flex items-center gap-3">
+          <img
+            src="/selfclaw-character.png"
+            alt="SelfClaw"
+            className="h-8 w-8 rounded-full object-cover"
+          />
           <h1 className="text-lg font-semibold tracking-tight">SelfClaw</h1>
           <span className="text-xs text-zinc-500">autonomous agent</span>
         </div>
