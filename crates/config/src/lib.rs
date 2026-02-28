@@ -63,6 +63,16 @@ pub struct LlmConfig {
 
     #[serde(default = "default_temperature")]
     pub temperature: f64,
+
+    /// Optional API key. If not set, the provider's env var is used
+    /// (e.g. ANTHROPIC_API_KEY, OPENAI_API_KEY).
+    #[serde(default)]
+    pub api_key: Option<String>,
+
+    /// Optional base URL override. Useful for proxies, self-hosted models,
+    /// or any OpenAI-compatible endpoint.
+    #[serde(default)]
+    pub base_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -240,6 +250,8 @@ impl Default for LlmConfig {
             model: default_model(),
             max_tokens: default_max_tokens(),
             temperature: default_temperature(),
+            api_key: None,
+            base_url: None,
         }
     }
 }
@@ -629,5 +641,85 @@ model = "claude-opus-4-20250514"
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
         assert!(err.contains("parse config"), "got: {}", err);
+    }
+
+    // ── Multi-provider config fields ─────────────────────────────
+
+    #[test]
+    fn test_llm_api_key_from_config() {
+        let toml = r#"
+[llm]
+provider = "openai"
+model = "gpt-4o"
+api_key = "sk-my-secret-key"
+"#;
+        let config = SelfClawConfig::from_str(toml).unwrap();
+        assert_eq!(config.llm.provider, "openai");
+        assert_eq!(config.llm.model, "gpt-4o");
+        assert_eq!(config.llm.api_key, Some("sk-my-secret-key".to_string()));
+    }
+
+    #[test]
+    fn test_llm_base_url_from_config() {
+        let toml = r#"
+[llm]
+provider = "ollama"
+model = "llama3.1"
+base_url = "http://192.168.1.100:11434"
+"#;
+        let config = SelfClawConfig::from_str(toml).unwrap();
+        assert_eq!(config.llm.provider, "ollama");
+        assert_eq!(
+            config.llm.base_url,
+            Some("http://192.168.1.100:11434".to_string())
+        );
+    }
+
+    #[test]
+    fn test_llm_defaults_no_api_key_or_base_url() {
+        let config = SelfClawConfig::default();
+        assert!(config.llm.api_key.is_none());
+        assert!(config.llm.base_url.is_none());
+    }
+
+    #[test]
+    fn test_llm_custom_provider_with_base_url() {
+        let toml = r#"
+[llm]
+provider = "my-custom-provider"
+model = "custom-model-v1"
+base_url = "https://my-llm-proxy.example.com"
+api_key = "custom-key-123"
+"#;
+        let config = SelfClawConfig::from_str(toml).unwrap();
+        assert_eq!(config.llm.provider, "my-custom-provider");
+        assert_eq!(config.llm.model, "custom-model-v1");
+        assert_eq!(
+            config.llm.base_url,
+            Some("https://my-llm-proxy.example.com".to_string())
+        );
+        assert_eq!(
+            config.llm.api_key,
+            Some("custom-key-123".to_string())
+        );
+    }
+
+    #[test]
+    fn test_all_known_providers_parse() {
+        let providers = [
+            "anthropic", "openai", "google", "ollama",
+            "openrouter", "groq", "xai", "mistral", "deepseek",
+        ];
+        for provider in &providers {
+            let toml = format!(
+                r#"
+[llm]
+provider = "{}"
+"#,
+                provider
+            );
+            let config = SelfClawConfig::from_str(&toml).unwrap();
+            assert_eq!(config.llm.provider, *provider);
+        }
     }
 }

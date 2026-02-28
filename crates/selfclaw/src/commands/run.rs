@@ -11,13 +11,13 @@ use selfclaw_tools::file::{FileAppendTool, FileReadTool, FileWriteTool};
 use selfclaw_tools::registry::ToolRegistry;
 use selfclaw_tools::shell::ShellExecTool;
 
-/// A real LLM caller that uses the Anthropic API.
-/// For now, uses the LlmCallTool internally.
-struct AnthropicLlmCaller {
+/// Multi-provider LLM caller. Delegates to the configured provider
+/// (Anthropic, OpenAI, Google, Ollama, OpenRouter, Groq, xAI, Mistral, DeepSeek, etc.)
+struct ProviderLlmCaller {
     tool: selfclaw_tools::llm::LlmCallTool,
 }
 
-impl AnthropicLlmCaller {
+impl ProviderLlmCaller {
     fn new(config: &SelfClawConfig) -> Self {
         Self {
             tool: selfclaw_tools::llm::LlmCallTool::from_config(&config.llm),
@@ -25,7 +25,7 @@ impl AnthropicLlmCaller {
     }
 }
 
-impl LlmCaller for AnthropicLlmCaller {
+impl LlmCaller for ProviderLlmCaller {
     fn call(&self, system: &str, user: &str) -> Result<String, String> {
         use selfclaw_tools::Tool;
 
@@ -184,7 +184,14 @@ pub async fn execute(config: SelfClawConfig, memory_dir: &str) -> anyhow::Result
     println!("Press Ctrl+C to stop.");
     println!();
 
-    let llm = AnthropicLlmCaller::new(&config);
+    let _provider_kind = selfclaw_tools::llm::ProviderKind::from_str(&config.llm.provider);
+    println!("LLM provider: {} ({})", config.llm.provider, config.llm.model);
+    if let Some(ref url) = config.llm.base_url {
+        println!("LLM base URL: {}", url);
+    }
+    println!();
+
+    let llm = ProviderLlmCaller::new(&config);
     let mut agent = AgentLoop::new(config, store, tools, llm).with_gateway(gateway);
 
     let result = agent.run().await.map_err(|e| anyhow::anyhow!(e));
