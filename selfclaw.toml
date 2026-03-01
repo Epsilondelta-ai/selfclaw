@@ -2,6 +2,7 @@
 loop_interval_secs = 60
 consolidation_every_n_cycles = 50
 max_actions_per_cycle = 5
+skills_dirs = ["~/.agents/skills", "~/.selfclaw/skills"]
 
 [llm]
 provider = "anthropic"

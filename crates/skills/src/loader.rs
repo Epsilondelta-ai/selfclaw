@@ -1,4 +1,5 @@
-use std::path::Path;
+use std::collections::HashSet;
+use std::path::{Path, PathBuf};
 
 use pulldown_cmark::{Event, HeadingLevel, Parser, Tag, TagEnd};
 use thiserror::Error;
@@ -215,6 +216,39 @@ pub fn load_skills_dir(dir: &Path) -> Result<Vec<Skill>, LoadError> {
     Ok(skills)
 }
 
+/// Load skills from multiple directories with first-match-wins deduplication.
+///
+/// Directories are processed in order. If a skill with the same name has already
+/// been loaded from an earlier directory, it is skipped. Non-existent directories
+/// are logged as warnings and skipped.
+pub fn load_skills_from_dirs(dirs: &[PathBuf]) -> Result<Vec<Skill>, LoadError> {
+    let mut seen: HashSet<String> = HashSet::new();
+    let mut all_skills: Vec<Skill> = Vec::new();
+
+    for dir in dirs {
+        if !dir.exists() {
+            tracing::warn!(dir = %dir.display(), "Skills directory not found, skipping");
+            continue;
+        }
+
+        let skills = load_skills_dir(dir)?;
+        for skill in skills {
+            if seen.contains(&skill.name) {
+                tracing::debug!(
+                    skill = %skill.name,
+                    dir = %dir.display(),
+                    "Skipping duplicate skill (already loaded from earlier directory)"
+                );
+                continue;
+            }
+            seen.insert(skill.name.clone());
+            all_skills.push(skill);
+        }
+    }
+
+    Ok(all_skills)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -350,6 +384,78 @@ mod tests {
     #[test]
     fn test_load_skills_dir_nonexistent() {
         let skills = load_skills_dir(Path::new("/nonexistent/dir")).unwrap();
+        assert!(skills.is_empty());
+    }
+
+    #[test]
+    fn test_load_skills_from_dirs_merges() {
+        let dir1 = TempDir::new().unwrap();
+        let dir2 = TempDir::new().unwrap();
+
+        let mut f1 = std::fs::File::create(dir1.path().join("a.md")).unwrap();
+        write!(
+            f1,
+            "# Skill: Alpha\n## Trigger: alpha trigger\n## Procedure:\n1. A.\n"
+        )
+        .unwrap();
+
+        let mut f2 = std::fs::File::create(dir2.path().join("b.md")).unwrap();
+        write!(
+            f2,
+            "# Skill: Beta\n## Trigger: beta trigger\n## Procedure:\n1. B.\n"
+        )
+        .unwrap();
+
+        let dirs = vec![dir1.path().to_path_buf(), dir2.path().to_path_buf()];
+        let skills = load_skills_from_dirs(&dirs).unwrap();
+        assert_eq!(skills.len(), 2);
+
+        let names: Vec<&str> = skills.iter().map(|s| s.name.as_str()).collect();
+        assert!(names.contains(&"Alpha"));
+        assert!(names.contains(&"Beta"));
+    }
+
+    #[test]
+    fn test_load_skills_from_dirs_first_wins() {
+        let dir1 = TempDir::new().unwrap();
+        let dir2 = TempDir::new().unwrap();
+
+        // Same skill name in both directories
+        let mut f1 = std::fs::File::create(dir1.path().join("dup.md")).unwrap();
+        write!(
+            f1,
+            "# Skill: Dup\n## Trigger: from dir1\n## Procedure:\n1. Dir1.\n"
+        )
+        .unwrap();
+
+        let mut f2 = std::fs::File::create(dir2.path().join("dup.md")).unwrap();
+        write!(
+            f2,
+            "# Skill: Dup\n## Trigger: from dir2\n## Procedure:\n1. Dir2.\n"
+        )
+        .unwrap();
+
+        let dirs = vec![dir1.path().to_path_buf(), dir2.path().to_path_buf()];
+        let skills = load_skills_from_dirs(&dirs).unwrap();
+        assert_eq!(skills.len(), 1);
+        assert_eq!(skills[0].trigger, "from dir1");
+    }
+
+    #[test]
+    fn test_load_skills_from_dirs_nonexistent_skipped() {
+        let dir1 = TempDir::new().unwrap();
+        let mut f1 = std::fs::File::create(dir1.path().join("x.md")).unwrap();
+        write!(f1, "# Skill: X\n## Trigger: test\n## Procedure:\n1. X.\n").unwrap();
+
+        let dirs = vec![PathBuf::from("/nonexistent/dir"), dir1.path().to_path_buf()];
+        let skills = load_skills_from_dirs(&dirs).unwrap();
+        assert_eq!(skills.len(), 1);
+        assert_eq!(skills[0].name, "X");
+    }
+
+    #[test]
+    fn test_load_skills_from_dirs_empty_list() {
+        let skills = load_skills_from_dirs(&[]).unwrap();
         assert!(skills.is_empty());
     }
 

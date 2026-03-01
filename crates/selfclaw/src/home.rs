@@ -35,11 +35,6 @@ pub fn memory_dir() -> PathBuf {
     home_dir().join("memory")
 }
 
-/// Returns the skills directory within the home directory.
-pub fn skills_dir() -> PathBuf {
-    home_dir().join("skills")
-}
-
 /// Returns the output directory within the home directory.
 pub fn output_dir() -> PathBuf {
     home_dir().join("output")
@@ -103,13 +98,24 @@ pub fn resolve_memory_dir(flag_value: &str) -> PathBuf {
     flag_path.to_path_buf()
 }
 
-/// Resolve skills dir: prefer home dir, then project-local.
-pub fn resolve_skills_dir() -> PathBuf {
-    let home_skills = skills_dir();
-    if home_skills.exists() {
-        return home_skills;
+/// Expand `~/` prefix to the user's home directory.
+/// If the path doesn't start with `~/` or is just `~`, it is expanded accordingly.
+/// Non-tilde paths are returned as-is.
+pub fn expand_tilde(path: &str) -> PathBuf {
+    if path == "~" {
+        return dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
     }
-    PathBuf::from("./skills")
+    if let Some(rest) = path.strip_prefix("~/") {
+        return dirs::home_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join(rest);
+    }
+    PathBuf::from(path)
+}
+
+/// Resolve a list of skill directory paths, expanding tildes.
+pub fn resolve_skills_dirs(raw: &[String]) -> Vec<PathBuf> {
+    raw.iter().map(|s| expand_tilde(s)).collect()
 }
 
 /// Check if SelfClaw has been initialized (home dir exists with config).
@@ -193,5 +199,51 @@ mod tests {
             home.join("state/selfclaw.pid"),
             PathBuf::from("/tmp/test-sc/state/selfclaw.pid")
         );
+    }
+
+    #[test]
+    fn test_expand_tilde_with_subpath() {
+        let result = expand_tilde("~/.agents/skills");
+        let home = dirs::home_dir().unwrap();
+        assert_eq!(result, home.join(".agents/skills"));
+    }
+
+    #[test]
+    fn test_expand_tilde_bare() {
+        let result = expand_tilde("~");
+        let home = dirs::home_dir().unwrap();
+        assert_eq!(result, home);
+    }
+
+    #[test]
+    fn test_expand_tilde_absolute_passthrough() {
+        let result = expand_tilde("/opt/skills");
+        assert_eq!(result, PathBuf::from("/opt/skills"));
+    }
+
+    #[test]
+    fn test_expand_tilde_relative_passthrough() {
+        let result = expand_tilde("./skills");
+        assert_eq!(result, PathBuf::from("./skills"));
+    }
+
+    #[test]
+    fn test_resolve_skills_dirs() {
+        let raw = vec![
+            "~/.agents/skills".to_string(),
+            "/opt/skills".to_string(),
+            "./local".to_string(),
+        ];
+        let resolved = resolve_skills_dirs(&raw);
+        let home = dirs::home_dir().unwrap();
+        assert_eq!(resolved[0], home.join(".agents/skills"));
+        assert_eq!(resolved[1], PathBuf::from("/opt/skills"));
+        assert_eq!(resolved[2], PathBuf::from("./local"));
+    }
+
+    #[test]
+    fn test_resolve_skills_dirs_empty() {
+        let resolved = resolve_skills_dirs(&[]);
+        assert!(resolved.is_empty());
     }
 }

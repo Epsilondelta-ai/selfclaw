@@ -425,6 +425,13 @@ fn build_config_toml(
         toml::Value::Integer(50),
     );
     agent.insert("max_actions_per_cycle".into(), toml::Value::Integer(5));
+    agent.insert(
+        "skills_dirs".into(),
+        toml::Value::Array(vec![
+            toml::Value::String("~/.agents/skills".into()),
+            toml::Value::String("~/.selfclaw/skills".into()),
+        ]),
+    );
     config.insert("agent".into(), toml::Value::Table(agent));
 
     // [llm]
@@ -638,6 +645,13 @@ mod tests {
         assert!(table.contains_key("llm"));
         assert!(table.contains_key("safety"));
         assert!(table.contains_key("communication"));
+
+        // Verify skills_dirs is present in agent section.
+        let agent = table["agent"].as_table().unwrap();
+        let skills_dirs = agent["skills_dirs"].as_array().unwrap();
+        assert_eq!(skills_dirs.len(), 2);
+        assert_eq!(skills_dirs[0].as_str(), Some("~/.agents/skills"));
+        assert_eq!(skills_dirs[1].as_str(), Some("~/.selfclaw/skills"));
 
         // Verify communication has channel subsections.
         let comm = table["communication"].as_table().unwrap();

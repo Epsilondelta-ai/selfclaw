@@ -142,8 +142,13 @@ SelfClaw can use the following tools during the ACT phase:
 | `memory_query` | Semantically search through memory files |
 
 ### Plugin / Skill System
-- Additional tools can be defined as **skill files** (markdown with structured metadata) in a `skills/` directory.
+- Additional tools can be defined as **skill files** (markdown with structured metadata).
+- Skills are loaded from multiple configurable directories (`skills_dirs` in config). Default directories:
+  - `~/.agents/skills/` — Shared across AI agents (AntiGravity, Cursor, etc.)
+  - `~/.selfclaw/skills/` — SelfClaw-specific skills
+- **First-match-wins**: When the same skill name exists in multiple directories, the first directory in the list takes priority.
 - Skills are loaded at runtime and can be added, modified, or removed without restarting the agent.
+- All configured directories are monitored for changes and hot-reloaded automatically.
 - Skill format:
   ```markdown
   # Skill: {name}
@@ -235,6 +240,7 @@ All configuration lives in a `selfclaw.toml` file:
 loop_interval_secs = 60
 consolidation_every_n_cycles = 50
 max_actions_per_cycle = 5
+skills_dirs = ["~/.agents/skills", "~/.selfclaw/skills"]  # Configurable, first-match-wins
 
 [llm]
 provider = "anthropic"                     # anthropic | openai | google | ollama | openrouter | groq | xai | mistral | deepseek | together | moonshot | bedrock | <custom>

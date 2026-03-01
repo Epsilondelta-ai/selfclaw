@@ -178,8 +178,9 @@ pub fn execute_at(home: &Path, force: bool) -> anyhow::Result<()> {
 }
 
 /// Build the list of subdirectories to create from a given home path.
+/// Also creates `~/.agents/skills/` as the shared cross-agent skills directory.
 fn all_subdirs(home: &Path) -> Vec<std::path::PathBuf> {
-    vec![
+    let mut dirs = vec![
         home.to_path_buf(),
         home.join("memory"),
         home.join("memory/identity"),
@@ -195,7 +196,14 @@ fn all_subdirs(home: &Path) -> Vec<std::path::PathBuf> {
         home.join("output"),
         home.join("logs"),
         home.join("state"),
-    ]
+    ];
+
+    // Add shared cross-agent skills directory (~/.agents/skills/)
+    if let Some(user_home) = dirs::home_dir() {
+        dirs.push(user_home.join(".agents/skills"));
+    }
+
+    dirs
 }
 
 fn write_default_config(path: &Path) -> anyhow::Result<()> {
@@ -206,6 +214,7 @@ fn write_default_config(path: &Path) -> anyhow::Result<()> {
 loop_interval_secs = 60
 consolidation_every_n_cycles = 50
 max_actions_per_cycle = 5
+skills_dirs = ["~/.agents/skills", "~/.selfclaw/skills"]
 
 [llm]
 provider = "anthropic"
@@ -251,6 +260,10 @@ mod tests {
         assert!(home.join("output").exists());
         assert!(home.join("logs").exists());
         assert!(home.join("state").exists());
+
+        // Shared cross-agent skills directory
+        let agents_skills = dirs::home_dir().unwrap().join(".agents/skills");
+        assert!(agents_skills.exists());
     }
 
     #[test]
@@ -268,6 +281,10 @@ mod tests {
 
         let content = fs::read_to_string(home.join("memory/identity/self_model.md")).unwrap();
         assert!(content.contains("SelfClaw"));
+
+        // Config should contain skills_dirs
+        let config_content = fs::read_to_string(home.join("config.toml")).unwrap();
+        assert!(config_content.contains("skills_dirs"));
     }
 
     #[test]

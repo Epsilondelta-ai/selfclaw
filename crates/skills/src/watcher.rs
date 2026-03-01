@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use tracing::{info, warn};
 
-use crate::loader::load_skills_dir;
+use crate::loader::{load_skills_dir, load_skills_from_dirs};
 use crate::registry::SkillRegistry;
 
 /// Watches a skills directory for changes and hot-reloads skills
@@ -117,6 +117,123 @@ impl SkillWatcher {
     /// Whether the watcher is currently active.
     pub fn is_watching(&self) -> bool {
         self._watcher.is_some()
+    }
+}
+
+/// Watches multiple skills directories for changes and hot-reloads skills
+/// into a shared SkillRegistry. Uses first-match-wins deduplication across directories.
+pub struct MultiDirSkillWatcher {
+    dirs: Vec<PathBuf>,
+    registry: Arc<Mutex<SkillRegistry>>,
+    watchers: Vec<RecommendedWatcher>,
+}
+
+impl MultiDirSkillWatcher {
+    /// Create a new MultiDirSkillWatcher that monitors the given directories
+    /// and reloads skills into the shared registry.
+    pub fn new(dirs: Vec<PathBuf>, registry: Arc<Mutex<SkillRegistry>>) -> Self {
+        Self {
+            dirs,
+            registry,
+            watchers: Vec::new(),
+        }
+    }
+
+    /// Perform an initial load of all skills from all directories.
+    pub fn initial_load(&self) -> Result<usize, crate::loader::LoadError> {
+        let skills = load_skills_from_dirs(&self.dirs)?;
+        let count = skills.len();
+
+        let mut reg = self.registry.lock().unwrap();
+        reg.clear();
+        for skill in skills {
+            reg.register(skill);
+        }
+
+        info!(count = count, dirs = ?self.dirs, "Initial multi-dir skills load complete");
+        Ok(count)
+    }
+
+    /// Reload all skills from all directories into the registry.
+    pub fn reload(&self) -> Result<usize, crate::loader::LoadError> {
+        let skills = load_skills_from_dirs(&self.dirs)?;
+        let count = skills.len();
+
+        let mut reg = self.registry.lock().unwrap();
+        reg.clear();
+        for skill in skills {
+            reg.register(skill);
+        }
+
+        info!(count = count, "Multi-dir skills reloaded");
+        Ok(count)
+    }
+
+    /// Start watching all existing skills directories for file changes.
+    pub fn start_watching(&mut self) -> Result<(), notify::Error> {
+        for dir in &self.dirs {
+            if !dir.exists() {
+                warn!(dir = %dir.display(), "Skills directory not found, not watching");
+                continue;
+            }
+
+            let all_dirs = self.dirs.clone();
+            let registry = self.registry.clone();
+
+            let mut watcher = notify::recommended_watcher(
+                move |result: Result<Event, notify::Error>| match result {
+                    Ok(event) => {
+                        let is_md_change = event
+                            .paths
+                            .iter()
+                            .any(|p| p.extension().and_then(|e| e.to_str()) == Some("md"));
+
+                        let is_relevant = matches!(
+                            event.kind,
+                            EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_)
+                        );
+
+                        if is_md_change && is_relevant {
+                            info!(paths = ?event.paths, "Skills directory changed, reloading all");
+                            match load_skills_from_dirs(&all_dirs) {
+                                Ok(skills) => {
+                                    let count = skills.len();
+                                    let mut reg = registry.lock().unwrap();
+                                    reg.clear();
+                                    for skill in skills {
+                                        reg.register(skill);
+                                    }
+                                    info!(count = count, "Multi-dir skills hot-reloaded");
+                                }
+                                Err(e) => {
+                                    warn!(error = %e, "Failed to reload skills");
+                                }
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        warn!(error = %e, "File watcher error");
+                    }
+                },
+            )?;
+
+            watcher.watch(dir, RecursiveMode::NonRecursive)?;
+            info!(dir = %dir.display(), "Watching skills directory for changes");
+            self.watchers.push(watcher);
+        }
+
+        Ok(())
+    }
+
+    /// Stop watching (drops all watchers).
+    pub fn stop_watching(&mut self) {
+        self.watchers.clear();
+        info!("Stopped watching all skills directories");
+    }
+
+    /// Whether any watcher is currently active.
+    pub fn is_watching(&self) -> bool {
+        !self.watchers.is_empty()
     }
 }
 
@@ -265,5 +382,141 @@ mod tests {
 
         let count = watcher.initial_load().unwrap();
         assert_eq!(count, 0);
+    }
+
+    // ── MultiDirSkillWatcher tests ──────────────────────────────
+
+    #[test]
+    fn test_multi_initial_load() {
+        let dir1 = TempDir::new().unwrap();
+        let dir2 = TempDir::new().unwrap();
+
+        let mut f1 = std::fs::File::create(dir1.path().join("a.md")).unwrap();
+        write!(
+            f1,
+            "# Skill: Alpha\n## Trigger: alpha\n## Procedure:\n1. A.\n"
+        )
+        .unwrap();
+
+        let mut f2 = std::fs::File::create(dir2.path().join("b.md")).unwrap();
+        write!(
+            f2,
+            "# Skill: Beta\n## Trigger: beta\n## Procedure:\n1. B.\n"
+        )
+        .unwrap();
+
+        let registry = Arc::new(Mutex::new(SkillRegistry::new()));
+        let dirs = vec![dir1.path().to_path_buf(), dir2.path().to_path_buf()];
+        let watcher = MultiDirSkillWatcher::new(dirs, registry.clone());
+
+        let count = watcher.initial_load().unwrap();
+        assert_eq!(count, 2);
+
+        let reg = registry.lock().unwrap();
+        assert!(reg.get("Alpha").is_some());
+        assert!(reg.get("Beta").is_some());
+    }
+
+    #[test]
+    fn test_multi_first_wins_precedence() {
+        let dir1 = TempDir::new().unwrap();
+        let dir2 = TempDir::new().unwrap();
+
+        let mut f1 = std::fs::File::create(dir1.path().join("dup.md")).unwrap();
+        write!(
+            f1,
+            "# Skill: Dup\n## Trigger: from dir1\n## Procedure:\n1. Dir1.\n"
+        )
+        .unwrap();
+
+        let mut f2 = std::fs::File::create(dir2.path().join("dup.md")).unwrap();
+        write!(
+            f2,
+            "# Skill: Dup\n## Trigger: from dir2\n## Procedure:\n1. Dir2.\n"
+        )
+        .unwrap();
+
+        let registry = Arc::new(Mutex::new(SkillRegistry::new()));
+        let dirs = vec![dir1.path().to_path_buf(), dir2.path().to_path_buf()];
+        let watcher = MultiDirSkillWatcher::new(dirs, registry.clone());
+
+        watcher.initial_load().unwrap();
+        let reg = registry.lock().unwrap();
+        assert_eq!(reg.get("Dup").unwrap().trigger, "from dir1");
+    }
+
+    #[test]
+    fn test_multi_start_stop_watching() {
+        let dir1 = TempDir::new().unwrap();
+        let dir2 = TempDir::new().unwrap();
+
+        let registry = Arc::new(Mutex::new(SkillRegistry::new()));
+        let dirs = vec![dir1.path().to_path_buf(), dir2.path().to_path_buf()];
+        let mut watcher = MultiDirSkillWatcher::new(dirs, registry);
+
+        assert!(!watcher.is_watching());
+
+        watcher.start_watching().unwrap();
+        assert!(watcher.is_watching());
+
+        watcher.stop_watching();
+        assert!(!watcher.is_watching());
+    }
+
+    #[test]
+    fn test_multi_reload() {
+        let dir1 = TempDir::new().unwrap();
+        let dir2 = TempDir::new().unwrap();
+
+        let mut f1 = std::fs::File::create(dir1.path().join("a.md")).unwrap();
+        write!(
+            f1,
+            "# Skill: Alpha\n## Trigger: alpha\n## Procedure:\n1. A.\n"
+        )
+        .unwrap();
+
+        let registry = Arc::new(Mutex::new(SkillRegistry::new()));
+        let dirs = vec![dir1.path().to_path_buf(), dir2.path().to_path_buf()];
+        let watcher = MultiDirSkillWatcher::new(dirs, registry.clone());
+
+        watcher.initial_load().unwrap();
+        assert_eq!(registry.lock().unwrap().count(), 1);
+
+        // Add a skill to the second directory
+        let mut f2 = std::fs::File::create(dir2.path().join("b.md")).unwrap();
+        write!(
+            f2,
+            "# Skill: Beta\n## Trigger: beta\n## Procedure:\n1. B.\n"
+        )
+        .unwrap();
+
+        let count = watcher.reload().unwrap();
+        assert_eq!(count, 2);
+        assert_eq!(registry.lock().unwrap().count(), 2);
+    }
+
+    #[test]
+    fn test_multi_nonexistent_dir_skipped() {
+        let dir1 = TempDir::new().unwrap();
+        let mut f1 = std::fs::File::create(dir1.path().join("a.md")).unwrap();
+        write!(
+            f1,
+            "# Skill: Alpha\n## Trigger: alpha\n## Procedure:\n1. A.\n"
+        )
+        .unwrap();
+
+        let registry = Arc::new(Mutex::new(SkillRegistry::new()));
+        let dirs = vec![
+            PathBuf::from("/nonexistent/skills"),
+            dir1.path().to_path_buf(),
+        ];
+        let mut watcher = MultiDirSkillWatcher::new(dirs, registry.clone());
+
+        let count = watcher.initial_load().unwrap();
+        assert_eq!(count, 1);
+
+        // start_watching should not fail for nonexistent dirs
+        watcher.start_watching().unwrap();
+        assert!(watcher.is_watching());
     }
 }

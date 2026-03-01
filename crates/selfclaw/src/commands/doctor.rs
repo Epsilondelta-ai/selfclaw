@@ -105,24 +105,41 @@ pub fn execute() -> anyhow::Result<bool> {
         },
     });
 
-    // 7. Skills directory
-    let skills_dir = home::skills_dir();
+    // 7. Skills directories (from config or defaults)
+    let skills_dirs_config = if config_ok && config_valid {
+        selfclaw_config::SelfClawConfig::load_or_default(&config_path)
+            .map(|c| c.agent.skills_dirs)
+            .unwrap_or_default()
+    } else {
+        selfclaw_config::AgentConfig::default().skills_dirs
+    };
+    let skills_dirs = home::resolve_skills_dirs(&skills_dirs_config);
+    let any_skills_dir_exists = skills_dirs.iter().any(|d| d.exists());
+    let skills_detail = skills_dirs
+        .iter()
+        .map(|d| {
+            if d.exists() {
+                let count = std::fs::read_dir(d)
+                    .map(|entries| {
+                        entries
+                            .filter_map(|e| e.ok())
+                            .filter(|e| {
+                                e.path().extension().map(|ext| ext == "md").unwrap_or(false)
+                            })
+                            .count()
+                    })
+                    .unwrap_or(0);
+                format!("{} ({} skills)", d.display(), count)
+            } else {
+                format!("{} (not found)", d.display())
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
     checks.push(Check {
-        name: "Skills directory",
-        passed: skills_dir.exists(),
-        detail: if skills_dir.exists() {
-            let count = std::fs::read_dir(&skills_dir)
-                .map(|entries| {
-                    entries
-                        .filter_map(|e| e.ok())
-                        .filter(|e| e.path().extension().map(|ext| ext == "md").unwrap_or(false))
-                        .count()
-                })
-                .unwrap_or(0);
-            format!("{} ({} skills loaded)", skills_dir.display(), count)
-        } else {
-            format!("{} (not found)", skills_dir.display())
-        },
+        name: "Skills directories",
+        passed: any_skills_dir_exists,
+        detail: skills_detail,
     });
 
     // 8. Daemon status

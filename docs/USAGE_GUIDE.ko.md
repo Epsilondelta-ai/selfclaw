@@ -447,7 +447,7 @@ selfclaw doctor
 - 메모리 디렉토리 구조
 - 정체성 파일
 - 메모리 인덱스
-- 스킬 디렉토리
+- 스킬 디렉토리들
 - 데몬 상태
 
 ---
@@ -465,6 +465,7 @@ selfclaw doctor
 loop_interval_secs = 60              # 루프 간격 (초), 기본: 60
 consolidation_every_n_cycles = 50    # 메모리 통합 주기, 기본: 50
 max_actions_per_cycle = 5            # 사이클당 최대 행동 수, 기본: 5
+skills_dirs = ["~/.agents/skills", "~/.selfclaw/skills"]  # 스킬 디렉토리 (먼저 나오는 것이 우선). 기본: ["~/.agents/skills", "~/.selfclaw/skills"]
 
 # ── LLM 설정 ─────────────────────────────────────────────
 [llm]
@@ -773,8 +774,14 @@ Action 2: success=true, data={...}
 
 ## 스킬 시스템
 
-스킬은 `./skills/` 디렉토리의 마크다운 파일로 정의되며, 에이전트가 런타임에
-로드합니다. 파일을 수정하면 에이전트를 재시작할 필요 없이 자동으로 반영됩니다.
+스킬은 여러 설정 가능한 디렉토리에서 런타임에 로드되는 마크다운 파일입니다. 기본적으로 `~/.agents/skills/` (여러 AI 에이전트가 공유)와 `~/.selfclaw/skills/` (SelfClaw 전용)에서 로드됩니다. 같은 이름의 스킬이 여러 디렉토리에 있으면 리스트에서 먼저 나오는 디렉토리가 우선합니다.
+
+| 디렉토리 | 용도 |
+|----------|------|
+| `~/.agents/skills/` | 여러 AI 에이전트 간 공유 (AntiGravity, Cursor 등) |
+| `~/.selfclaw/skills/` | SelfClaw 전용 스킬 |
+
+파일을 수정하면 에이전트를 재시작할 필요 없이 자동으로 반영됩니다.
 
 ### 스킬 파일 형식
 
@@ -856,8 +863,8 @@ Action 2: success=true, data={...}
 
 ### 핫 리로드
 
-- `./skills/` 디렉토리의 `.md` 파일 변화를 `notify` 크레이트로 감시
-- 파일 생성/수정/삭제 시 전체 스킬 디렉토리를 자동 리로드
+- 설정된 모든 스킬 디렉토리의 `.md` 파일 변화를 `notify` 크레이트로 감시
+- 파일 생성/수정/삭제 시 전체 스킬 디렉토리를 자동 리로드 (우선순위 유지)
 - 유효하지 않은 스킬 파일은 경고 로그와 함께 건너뜀
 
 ---
@@ -1255,15 +1262,15 @@ cd web-ui && npm run build
 
 | 크레이트 | 테스트 수 |
 |----------|-----------|
-| selfclaw (bin) | 39 |
+| selfclaw (bin) | 54 |
 | agent-core | 50 |
 | comms | 70 |
-| config | 25 |
+| config | 29 |
 | memory | 32 |
-| skills | 34 |
+| skills | 43 |
 | tools | 114 |
 | 통합 테스트 | 8 |
-| **합계** | **372** |
+| **합계** | **403** |
 
 ### 로그 설정
 
@@ -1327,11 +1334,12 @@ NEXT_PUBLIC_WS_URL=ws://localhost:3000
 ### 스킬이 로드되지 않을 때
 
 ```bash
-# skills 디렉토리 확인
-ls -la ./skills/*.md
+# 설정된 스킬 디렉토리 확인
+ls -la ~/.agents/skills/*.md
+ls -la ~/.selfclaw/skills/*.md
 
 # 스킬 파일 형식 확인 (반드시 "# Skill:" 과 "## Trigger:" 포함)
-head -5 ./skills/my_skill.md
+head -5 ~/.selfclaw/skills/my_skill.md
 
 # RUST_LOG=debug로 로드 오류 확인
 RUST_LOG=debug selfclaw run 2>&1 | grep -i skill

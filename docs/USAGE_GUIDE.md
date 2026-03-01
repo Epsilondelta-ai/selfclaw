@@ -474,7 +474,7 @@ Checks:
 - Memory directory structure
 - Identity files
 - Memory index
-- Skills directory
+- Skills directories
 - Daemon status
 
 ---
@@ -492,6 +492,7 @@ All fields are optional.
 loop_interval_secs = 60              # Loop interval in seconds. Default: 60
 consolidation_every_n_cycles = 50    # Memory consolidation frequency. Default: 50
 max_actions_per_cycle = 5            # Max actions per cycle. Default: 5
+skills_dirs = ["~/.agents/skills", "~/.selfclaw/skills"]  # Skills directories (first-match-wins). Default: ["~/.agents/skills", "~/.selfclaw/skills"]
 
 # ── LLM ──────────────────────────────────────────────────
 [llm]
@@ -785,8 +786,13 @@ Each entry contains:
 
 ## Skills System
 
-Skills are markdown files in the `./skills/` directory, loaded at runtime.
+Skills are markdown files loaded at runtime from multiple configurable directories. By default, skills are loaded from `~/.agents/skills/` (shared across AI agents) and `~/.selfclaw/skills/` (SelfClaw-specific). When the same skill name exists in multiple directories, the first directory in the list wins.
 When files are modified, the agent picks up changes automatically without a restart.
+
+| Directory | Purpose |
+|-----------|---------|
+| `~/.agents/skills/` | Shared across AI agents (AntiGravity, Cursor, etc.) |
+| `~/.selfclaw/skills/` | SelfClaw-specific skills |
 
 ### Skill File Format
 
@@ -868,8 +874,8 @@ Example: `"When a human initiates contact"` produces keywords: `["when", "human"
 
 ### Hot-Reload
 
-- The `./skills/` directory is monitored using the `notify` crate
-- When `.md` files are created, modified, or deleted, all skills are reloaded
+- All configured skills directories are monitored using the `notify` crate
+- When `.md` files are created, modified, or deleted in any monitored directory, all skills are reloaded
 - Invalid skill files are skipped with a warning log
 
 ---
@@ -1269,15 +1275,15 @@ cd web-ui && npm run build
 
 | Crate | Tests |
 |-------|-------|
-| selfclaw (bin) | 39 |
+| selfclaw (bin) | 54 |
 | agent-core | 50 |
 | comms | 70 |
-| config | 25 |
+| config | 29 |
 | memory | 32 |
-| skills | 34 |
+| skills | 43 |
 | tools | 114 |
 | integration | 8 |
-| **Total** | **372** |
+| **Total** | **403** |
 
 ### Logging
 
@@ -1341,11 +1347,12 @@ NEXT_PUBLIC_WS_URL=ws://localhost:3000
 ### Skills not loading
 
 ```bash
-# Check skills directory
-ls -la ./skills/*.md
+# Check configured skills directories
+ls -la ~/.agents/skills/*.md
+ls -la ~/.selfclaw/skills/*.md
 
 # Check skill file format (must contain "# Skill:" and "## Trigger:")
-head -5 ./skills/my_skill.md
+head -5 ~/.selfclaw/skills/my_skill.md
 
 # Check for load errors with debug logging
 RUST_LOG=debug selfclaw run 2>&1 | grep -i skill

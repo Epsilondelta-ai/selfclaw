@@ -48,6 +48,11 @@ pub struct AgentConfig {
 
     #[serde(default = "default_max_actions")]
     pub max_actions_per_cycle: u64,
+
+    /// Directories to load skills from (first-match-wins for duplicates).
+    /// Supports tilde expansion (`~/` → home directory).
+    #[serde(default = "default_skills_dirs")]
+    pub skills_dirs: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -182,6 +187,12 @@ fn default_consolidation_cycles() -> u64 {
 fn default_max_actions() -> u64 {
     5
 }
+fn default_skills_dirs() -> Vec<String> {
+    vec![
+        "~/.agents/skills".to_string(),
+        "~/.selfclaw/skills".to_string(),
+    ]
+}
 fn default_provider() -> String {
     "anthropic".to_string()
 }
@@ -228,6 +239,7 @@ impl Default for AgentConfig {
             loop_interval_secs: default_loop_interval(),
             consolidation_every_n_cycles: default_consolidation_cycles(),
             max_actions_per_cycle: default_max_actions(),
+            skills_dirs: default_skills_dirs(),
         }
     }
 }
@@ -685,6 +697,50 @@ api_key = "custom-key-123"
             Some("https://my-llm-proxy.example.com".to_string())
         );
         assert_eq!(config.llm.api_key, Some("custom-key-123".to_string()));
+    }
+
+    // ── skills_dirs field ────────────────────────────────────────
+
+    #[test]
+    fn test_skills_dirs_default() {
+        let config = SelfClawConfig::default();
+        assert_eq!(
+            config.agent.skills_dirs,
+            vec!["~/.agents/skills", "~/.selfclaw/skills"]
+        );
+    }
+
+    #[test]
+    fn test_skills_dirs_custom() {
+        let toml = r#"
+[agent]
+skills_dirs = ["/opt/skills", "~/my-skills"]
+"#;
+        let config = SelfClawConfig::parse_toml(toml).unwrap();
+        assert_eq!(config.agent.skills_dirs, vec!["/opt/skills", "~/my-skills"]);
+    }
+
+    #[test]
+    fn test_skills_dirs_empty_allowed() {
+        let toml = r#"
+[agent]
+skills_dirs = []
+"#;
+        let config = SelfClawConfig::parse_toml(toml).unwrap();
+        assert!(config.agent.skills_dirs.is_empty());
+    }
+
+    #[test]
+    fn test_skills_dirs_unspecified_uses_default() {
+        let toml = r#"
+[agent]
+loop_interval_secs = 30
+"#;
+        let config = SelfClawConfig::parse_toml(toml).unwrap();
+        assert_eq!(
+            config.agent.skills_dirs,
+            vec!["~/.agents/skills", "~/.selfclaw/skills"]
+        );
     }
 
     #[test]

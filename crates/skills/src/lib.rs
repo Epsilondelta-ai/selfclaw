@@ -3,10 +3,10 @@ pub mod registry;
 pub mod skill;
 pub mod watcher;
 
-pub use loader::{load_skill_file, load_skills_dir, parse_skill, LoadError};
+pub use loader::{load_skill_file, load_skills_dir, load_skills_from_dirs, parse_skill, LoadError};
 pub use registry::SkillRegistry;
 pub use skill::Skill;
-pub use watcher::SkillWatcher;
+pub use watcher::{MultiDirSkillWatcher, SkillWatcher};
 
 pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")

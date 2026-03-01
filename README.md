@@ -1,5 +1,7 @@
 # SelfClaw
 
+> Also available in [Korean (한국어)](./README.ko.md).
+
 ![SelfClaw](docs/images/selfclaw-character.png)
 
 ---
@@ -183,6 +185,7 @@ Create a `selfclaw.toml` file (all fields optional, defaults shown):
 loop_interval_secs = 60
 consolidation_every_n_cycles = 50
 max_actions_per_cycle = 5
+skills_dirs = ["~/.agents/skills", "~/.selfclaw/skills"]
 
 [llm]
 provider = "anthropic"
@@ -224,7 +227,14 @@ port = 3001
 
 ## Skills
 
-Skills are markdown files in the `skills/` directory that define reusable behaviors:
+Skills are markdown files that define reusable behaviors. SelfClaw loads skills from multiple directories (configurable via `skills_dirs`):
+
+| Directory | Purpose |
+|-----------|---------|
+| `~/.agents/skills/` | Shared across AI agents (AntiGravity, Cursor, etc.) |
+| `~/.selfclaw/skills/` | SelfClaw-specific skills |
+
+When the same skill name exists in multiple directories, the first directory in the list wins.
 
 ```markdown
 # Skill: GreetHuman

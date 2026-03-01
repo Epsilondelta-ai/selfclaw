@@ -6,7 +6,7 @@ use selfclaw_comms::cli::CliChannel;
 use selfclaw_comms::Gateway;
 use selfclaw_config::SelfClawConfig;
 use selfclaw_memory::store::FileMemoryStore;
-use selfclaw_skills::{SkillRegistry, SkillWatcher};
+use selfclaw_skills::{MultiDirSkillWatcher, SkillRegistry};
 use selfclaw_tools::file::{FileAppendTool, FileReadTool, FileWriteTool};
 use selfclaw_tools::registry::ToolRegistry;
 use selfclaw_tools::shell::ShellExecTool;
@@ -73,11 +73,10 @@ pub async fn execute(config: SelfClawConfig, memory_dir: &str) -> anyhow::Result
 
     println!("Tools registered: {:?}", tools.names());
 
-    // Load skills from skills/ directory (prefer ~/.selfclaw/skills/)
-    let skills_path = crate::home::resolve_skills_dir();
-    let skills_dir = skills_path.as_path();
+    // Load skills from configured directories (first-match-wins)
+    let skills_dirs = crate::home::resolve_skills_dirs(&config.agent.skills_dirs);
     let skill_registry = Arc::new(Mutex::new(SkillRegistry::new()));
-    let mut skill_watcher = SkillWatcher::new(skills_dir, skill_registry.clone());
+    let mut skill_watcher = MultiDirSkillWatcher::new(skills_dirs, skill_registry.clone());
 
     match skill_watcher.initial_load() {
         Ok(count) => println!("Skills loaded: {}", count),
