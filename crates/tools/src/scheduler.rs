@@ -83,9 +83,8 @@ impl Tool for SchedulerTool {
             .and_then(|v| v.as_str())
             .ok_or_else(|| ToolError::MissingField("execute_at".to_string()))?;
 
-        let execute_at: DateTime<Utc> = execute_at_str
-            .parse()
-            .map_err(|e: chrono::ParseError| {
+        let execute_at: DateTime<Utc> =
+            execute_at_str.parse().map_err(|e: chrono::ParseError| {
                 ToolError::InvalidInput(format!("invalid datetime: {}", e))
             })?;
 

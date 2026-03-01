@@ -100,7 +100,10 @@ impl DiscordChannel {
 
         while connected.load(Ordering::Relaxed) {
             for channel_id in channel_ids {
-                let url = format!("{}/channels/{}/messages?limit=10", DISCORD_API_BASE, channel_id);
+                let url = format!(
+                    "{}/channels/{}/messages?limit=10",
+                    DISCORD_API_BASE, channel_id
+                );
 
                 let mut req = client
                     .get(&url)
@@ -115,7 +118,8 @@ impl DiscordChannel {
                         if let Ok(messages) = resp.json::<Vec<serde_json::Value>>().await {
                             for msg in messages.iter().rev() {
                                 let msg_id = msg["id"].as_str().unwrap_or_default().to_string();
-                                let content = msg["content"].as_str().unwrap_or_default().to_string();
+                                let content =
+                                    msg["content"].as_str().unwrap_or_default().to_string();
                                 let author = msg["author"]["username"]
                                     .as_str()
                                     .unwrap_or("unknown")
@@ -130,8 +134,7 @@ impl DiscordChannel {
                                     continue;
                                 }
 
-                                last_message_ids
-                                    .insert(channel_id.clone(), msg_id.clone());
+                                last_message_ids.insert(channel_id.clone(), msg_id.clone());
 
                                 let inbound = InboundMessage {
                                     id: format!("discord-{}", msg_id),
@@ -175,10 +178,7 @@ impl DiscordChannel {
             match outbound_rx.recv().await {
                 Some(msg) => {
                     if let Some(ref channel_id) = msg.conversation_id {
-                        let url = format!(
-                            "{}/channels/{}/messages",
-                            DISCORD_API_BASE, channel_id
-                        );
+                        let url = format!("{}/channels/{}/messages", DISCORD_API_BASE, channel_id);
 
                         let body = serde_json::json!({
                             "content": msg.content

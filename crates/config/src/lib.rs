@@ -222,7 +222,6 @@ fn default_webchat_port() -> u16 {
 
 // ── Default trait impls ──────────────────────────────────────────────
 
-
 impl Default for AgentConfig {
     fn default() -> Self {
         Self {
@@ -283,7 +282,7 @@ impl SelfClawConfig {
     }
 
     /// Load config from a TOML string. Missing fields use defaults.
-    pub fn from_str(s: &str) -> Result<Self, ConfigError> {
+    pub fn parse_toml(s: &str) -> Result<Self, ConfigError> {
         let config: SelfClawConfig = toml::from_str(s)?;
         config.validate()?;
         Ok(config)
@@ -394,7 +393,7 @@ cli_enabled = false
 web_ui_enabled = true
 web_ui_port = 8080
 "#;
-        let config = SelfClawConfig::from_str(toml).unwrap();
+        let config = SelfClawConfig::parse_toml(toml).unwrap();
         assert_eq!(config.agent.loop_interval_secs, 30);
         assert_eq!(config.agent.consolidation_every_n_cycles, 25);
         assert_eq!(config.agent.max_actions_per_cycle, 10);
@@ -433,7 +432,8 @@ temperature = 0.7
 
     #[test]
     fn test_defaults_when_file_missing() {
-        let config = SelfClawConfig::load_or_default(Path::new("/nonexistent/selfclaw.toml")).unwrap();
+        let config =
+            SelfClawConfig::load_or_default(Path::new("/nonexistent/selfclaw.toml")).unwrap();
         assert_eq!(config.agent.loop_interval_secs, 60);
         assert_eq!(config.agent.consolidation_every_n_cycles, 50);
         assert_eq!(config.agent.max_actions_per_cycle, 5);
@@ -470,7 +470,7 @@ temperature = 0.7
 [agent]
 loop_interval_secs = 0
 "#;
-        let result = SelfClawConfig::from_str(toml);
+        let result = SelfClawConfig::parse_toml(toml);
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
         assert!(err.contains("loop_interval_secs"), "got: {}", err);
@@ -482,14 +482,10 @@ loop_interval_secs = 0
 [agent]
 consolidation_every_n_cycles = 0
 "#;
-        let result = SelfClawConfig::from_str(toml);
+        let result = SelfClawConfig::parse_toml(toml);
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
-        assert!(
-            err.contains("consolidation_every_n_cycles"),
-            "got: {}",
-            err
-        );
+        assert!(err.contains("consolidation_every_n_cycles"), "got: {}", err);
     }
 
     #[test]
@@ -498,7 +494,7 @@ consolidation_every_n_cycles = 0
 [agent]
 max_actions_per_cycle = 0
 "#;
-        let result = SelfClawConfig::from_str(toml);
+        let result = SelfClawConfig::parse_toml(toml);
         assert!(result.is_err());
     }
 
@@ -508,7 +504,7 @@ max_actions_per_cycle = 0
 [llm]
 max_tokens = 0
 "#;
-        let result = SelfClawConfig::from_str(toml);
+        let result = SelfClawConfig::parse_toml(toml);
         assert!(result.is_err());
     }
 
@@ -518,7 +514,7 @@ max_tokens = 0
 [llm]
 temperature = -0.1
 "#;
-        let result = SelfClawConfig::from_str(toml);
+        let result = SelfClawConfig::parse_toml(toml);
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
         assert!(err.contains("temperature"), "got: {}", err);
@@ -530,7 +526,7 @@ temperature = -0.1
 [llm]
 temperature = 2.5
 "#;
-        let result = SelfClawConfig::from_str(toml);
+        let result = SelfClawConfig::parse_toml(toml);
         assert!(result.is_err());
     }
 
@@ -540,7 +536,7 @@ temperature = 2.5
 [llm]
 provider = ""
 "#;
-        let result = SelfClawConfig::from_str(toml);
+        let result = SelfClawConfig::parse_toml(toml);
         assert!(result.is_err());
     }
 
@@ -550,7 +546,7 @@ provider = ""
 [llm]
 model = ""
 "#;
-        let result = SelfClawConfig::from_str(toml);
+        let result = SelfClawConfig::parse_toml(toml);
         assert!(result.is_err());
     }
 
@@ -560,7 +556,7 @@ model = ""
 [safety]
 max_api_calls_per_hour = 0
 "#;
-        let result = SelfClawConfig::from_str(toml);
+        let result = SelfClawConfig::parse_toml(toml);
         assert!(result.is_err());
     }
 
@@ -570,7 +566,7 @@ max_api_calls_per_hour = 0
 [safety]
 max_file_writes_per_cycle = 0
 "#;
-        let result = SelfClawConfig::from_str(toml);
+        let result = SelfClawConfig::parse_toml(toml);
         assert!(result.is_err());
     }
 
@@ -582,7 +578,7 @@ max_file_writes_per_cycle = 0
 [agent]
 loop_interval_secs = 120
 "#;
-        let config = SelfClawConfig::from_str(toml).unwrap();
+        let config = SelfClawConfig::parse_toml(toml).unwrap();
         // Specified field
         assert_eq!(config.agent.loop_interval_secs, 120);
         // Defaults for rest of agent
@@ -600,7 +596,7 @@ loop_interval_secs = 120
 [llm]
 model = "claude-opus-4-20250514"
 "#;
-        let config = SelfClawConfig::from_str(toml).unwrap();
+        let config = SelfClawConfig::parse_toml(toml).unwrap();
         assert_eq!(config.llm.model, "claude-opus-4-20250514");
         // Defaults for rest of llm
         assert_eq!(config.llm.provider, "anthropic");
@@ -611,7 +607,7 @@ model = "claude-opus-4-20250514"
 
     #[test]
     fn test_empty_toml_uses_all_defaults() {
-        let config = SelfClawConfig::from_str("").unwrap();
+        let config = SelfClawConfig::parse_toml("").unwrap();
         assert_eq!(config, SelfClawConfig::default());
     }
 
@@ -627,7 +623,7 @@ model = "claude-opus-4-20250514"
 
     #[test]
     fn test_parse_error_on_invalid_toml() {
-        let result = SelfClawConfig::from_str("this is not valid toml {{{{");
+        let result = SelfClawConfig::parse_toml("this is not valid toml {{{{");
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
         assert!(err.contains("parse config"), "got: {}", err);
@@ -643,7 +639,7 @@ provider = "openai"
 model = "gpt-4o"
 api_key = "sk-my-secret-key"
 "#;
-        let config = SelfClawConfig::from_str(toml).unwrap();
+        let config = SelfClawConfig::parse_toml(toml).unwrap();
         assert_eq!(config.llm.provider, "openai");
         assert_eq!(config.llm.model, "gpt-4o");
         assert_eq!(config.llm.api_key, Some("sk-my-secret-key".to_string()));
@@ -657,7 +653,7 @@ provider = "ollama"
 model = "llama3.1"
 base_url = "http://192.168.1.100:11434"
 "#;
-        let config = SelfClawConfig::from_str(toml).unwrap();
+        let config = SelfClawConfig::parse_toml(toml).unwrap();
         assert_eq!(config.llm.provider, "ollama");
         assert_eq!(
             config.llm.base_url,
@@ -681,24 +677,28 @@ model = "custom-model-v1"
 base_url = "https://my-llm-proxy.example.com"
 api_key = "custom-key-123"
 "#;
-        let config = SelfClawConfig::from_str(toml).unwrap();
+        let config = SelfClawConfig::parse_toml(toml).unwrap();
         assert_eq!(config.llm.provider, "my-custom-provider");
         assert_eq!(config.llm.model, "custom-model-v1");
         assert_eq!(
             config.llm.base_url,
             Some("https://my-llm-proxy.example.com".to_string())
         );
-        assert_eq!(
-            config.llm.api_key,
-            Some("custom-key-123".to_string())
-        );
+        assert_eq!(config.llm.api_key, Some("custom-key-123".to_string()));
     }
 
     #[test]
     fn test_all_known_providers_parse() {
         let providers = [
-            "anthropic", "openai", "google", "ollama",
-            "openrouter", "groq", "xai", "mistral", "deepseek",
+            "anthropic",
+            "openai",
+            "google",
+            "ollama",
+            "openrouter",
+            "groq",
+            "xai",
+            "mistral",
+            "deepseek",
         ];
         for provider in &providers {
             let toml = format!(
@@ -708,7 +708,7 @@ provider = "{}"
 "#,
                 provider
             );
-            let config = SelfClawConfig::from_str(&toml).unwrap();
+            let config = SelfClawConfig::parse_toml(&toml).unwrap();
             assert_eq!(config.llm.provider, *provider);
         }
     }

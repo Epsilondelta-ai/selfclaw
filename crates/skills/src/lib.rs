@@ -1,11 +1,11 @@
-pub mod skill;
 pub mod loader;
 pub mod registry;
+pub mod skill;
 pub mod watcher;
 
-pub use skill::Skill;
-pub use loader::{parse_skill, load_skill_file, load_skills_dir, LoadError};
+pub use loader::{load_skill_file, load_skills_dir, parse_skill, LoadError};
 pub use registry::SkillRegistry;
+pub use skill::Skill;
 pub use watcher::SkillWatcher;
 
 pub fn version() -> &'static str {

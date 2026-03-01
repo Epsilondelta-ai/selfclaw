@@ -100,10 +100,7 @@ impl SlackChannel {
             for channel_id in channel_ids {
                 let url = format!("{}/conversations.history", SLACK_API_BASE);
 
-                let mut params = vec![
-                    ("channel", channel_id.as_str()),
-                    ("limit", "10"),
-                ];
+                let mut params = vec![("channel", channel_id.as_str()), ("limit", "10")];
 
                 let oldest_binding;
                 if let Some(ts) = last_timestamps.get(channel_id) {
@@ -137,8 +134,7 @@ impl SlackChannel {
                                     }
 
                                     let ts = msg["ts"].as_str().unwrap_or_default().to_string();
-                                    let text =
-                                        msg["text"].as_str().unwrap_or_default().to_string();
+                                    let text = msg["text"].as_str().unwrap_or_default().to_string();
                                     let user =
                                         msg["user"].as_str().unwrap_or("unknown").to_string();
 

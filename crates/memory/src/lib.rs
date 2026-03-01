@@ -1,7 +1,7 @@
-pub mod store;
-pub mod index;
 pub mod episodic;
+pub mod index;
 pub mod purpose;
+pub mod store;
 
 pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")

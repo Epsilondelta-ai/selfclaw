@@ -202,7 +202,7 @@ fn test_skills_load_and_match() {
 #[test]
 fn test_config_changes_respected() {
     // Custom config with max_actions_per_cycle = 2
-    let config = SelfClawConfig::from_str(
+    let config = SelfClawConfig::parse_toml(
         r#"
 [agent]
 max_actions_per_cycle = 2

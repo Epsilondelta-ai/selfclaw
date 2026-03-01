@@ -45,9 +45,9 @@ impl std::fmt::Debug for ChannelHandle {
 
 impl ChannelHandle {
     pub fn send(&self, message: OutboundMessage) -> Result<(), ChannelError> {
-        self.outbound_tx.send(message).map_err(|e| {
-            ChannelError::SendFailed(format!("channel {} closed: {}", self.name, e))
-        })
+        self.outbound_tx
+            .send(message)
+            .map_err(|e| ChannelError::SendFailed(format!("channel {} closed: {}", self.name, e)))
     }
 }
 

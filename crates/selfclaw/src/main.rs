@@ -101,7 +101,10 @@ async fn main() -> anyhow::Result<()> {
     // Commands that don't need config loaded.
     match &cli.command {
         Commands::Init { force } => return commands::init::execute(*force),
-        Commands::Onboard { install_daemon, reset } => {
+        Commands::Onboard {
+            install_daemon,
+            reset,
+        } => {
             return commands::onboard::execute(*install_daemon, *reset);
         }
         Commands::Daemon { action } => {
@@ -241,7 +244,10 @@ mod tests {
     fn test_cli_parses_onboard() {
         let cli = Cli::parse_from(["selfclaw", "onboard"]);
         match cli.command {
-            Commands::Onboard { install_daemon, reset } => {
+            Commands::Onboard {
+                install_daemon,
+                reset,
+            } => {
                 assert!(!install_daemon);
                 assert!(!reset);
             }
@@ -253,7 +259,10 @@ mod tests {
     fn test_cli_parses_onboard_flags() {
         let cli = Cli::parse_from(["selfclaw", "onboard", "--install-daemon", "--reset"]);
         match cli.command {
-            Commands::Onboard { install_daemon, reset } => {
+            Commands::Onboard {
+                install_daemon,
+                reset,
+            } => {
                 assert!(install_daemon);
                 assert!(reset);
             }

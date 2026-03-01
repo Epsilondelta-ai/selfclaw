@@ -121,8 +121,7 @@ impl TelegramChannel {
                                         continue;
                                     }
 
-                                    let text =
-                                        msg["text"].as_str().unwrap_or_default().to_string();
+                                    let text = msg["text"].as_str().unwrap_or_default().to_string();
                                     if text.is_empty() {
                                         continue;
                                     }

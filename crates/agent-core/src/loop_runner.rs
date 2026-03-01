@@ -2,7 +2,7 @@ use chrono::Utc;
 use tokio::sync::mpsc;
 use tracing::{info, warn};
 
-use selfclaw_comms::message::{InboundMessage, OutboundMessage, ChannelKind};
+use selfclaw_comms::message::{ChannelKind, InboundMessage, OutboundMessage};
 use selfclaw_comms::Gateway;
 use selfclaw_config::SelfClawConfig;
 use selfclaw_memory::episodic::EpisodicLogger;
@@ -78,7 +78,12 @@ impl<S: MemoryStore, L: LlmCaller> AgentLoop<S, L> {
     }
 
     /// Send a message to a human via a specific channel.
-    pub fn send_message(&self, content: &str, channel: ChannelKind, conversation_id: Option<String>) {
+    pub fn send_message(
+        &self,
+        content: &str,
+        channel: ChannelKind,
+        conversation_id: Option<String>,
+    ) {
         if let Some(ref gw) = self.gateway {
             let mut msg = OutboundMessage::new(content, channel);
             msg.conversation_id = conversation_id;
@@ -212,9 +217,7 @@ impl<S: MemoryStore, L: LlmCaller> AgentLoop<S, L> {
                     .as_str()
                     .unwrap_or_default()
                     .to_string();
-                let channel_str = action.input["channel"]
-                    .as_str()
-                    .unwrap_or("cli");
+                let channel_str = action.input["channel"].as_str().unwrap_or("cli");
                 let channel = match channel_str {
                     "discord" => ChannelKind::Discord,
                     "telegram" => ChannelKind::Telegram,
@@ -300,13 +303,12 @@ impl<S: MemoryStore, L: LlmCaller> AgentLoop<S, L> {
             let journal = PurposeJournal::new(&self.store);
             let entry = PurposeEntry {
                 timestamp: now.format("%Y-%m-%d %H:%M:%S UTC").to_string(),
-                hypothesis: self
-                    .purpose
-                    .current_hypothesis
-                    .clone()
-                    .unwrap_or_default(),
+                hypothesis: self.purpose.current_hypothesis.clone().unwrap_or_default(),
                 confidence_score: self.purpose.confidence as f64,
-                evidence: format!("Confidence dropped below threshold after cycle {}", self.cycle_count + 1),
+                evidence: format!(
+                    "Confidence dropped below threshold after cycle {}",
+                    self.cycle_count + 1
+                ),
             };
             let _ = journal.append_entry(&entry);
         }
@@ -670,15 +672,14 @@ mod tests {
     #[test]
     fn test_purpose_confidence_updates_on_success() {
         let (_dir, store) = setup();
-        let llm = MockLlm::new(
-            "Echo test.",
-            r#"{"tool": "echo", "input": {"x": 1}}"#,
-        );
+        let llm = MockLlm::new("Echo test.", r#"{"tool": "echo", "input": {"x": 1}}"#);
         let mut tools = ToolRegistry::new();
         tools.register(Box::new(EchoTool));
 
         let mut agent = AgentLoop::new(default_config(), store, tools, llm);
-        agent.purpose.set_hypothesis("Test purpose".to_string(), 0.5);
+        agent
+            .purpose
+            .set_hypothesis("Test purpose".to_string(), 0.5);
 
         let initial = agent.purpose.confidence;
         agent.run_cycle().unwrap();

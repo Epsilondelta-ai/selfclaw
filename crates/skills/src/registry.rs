@@ -139,7 +139,12 @@ mod tests {
     #[test]
     fn test_register_and_get() {
         let mut reg = SkillRegistry::new();
-        let skill = make_skill("Greet", "human contact first time", &["human_message"], &["Say hi"]);
+        let skill = make_skill(
+            "Greet",
+            "human contact first time",
+            &["human_message"],
+            &["Say hi"],
+        );
         reg.register(skill);
 
         assert_eq!(reg.count(), 1);

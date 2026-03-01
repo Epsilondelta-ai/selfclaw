@@ -45,8 +45,10 @@ pub fn start() -> anyhow::Result<()> {
 
     let child = Command::new(exe)
         .args([
-            "-c", &config_path.to_string_lossy(),
-            "-m", &memory_dir.to_string_lossy(),
+            "-c",
+            &config_path.to_string_lossy(),
+            "-m",
+            &memory_dir.to_string_lossy(),
             "run",
         ])
         .stdout(log)
@@ -62,7 +64,10 @@ pub fn start() -> anyhow::Result<()> {
     if !is_running() {
         // Process exited immediately — clean up stale PID file.
         let _ = fs::remove_file(home::pid_file());
-        eprintln!("  Daemon failed to start. Check logs: {}", log_file.display());
+        eprintln!(
+            "  Daemon failed to start. Check logs: {}",
+            log_file.display()
+        );
         return Err(anyhow::anyhow!("daemon exited immediately after spawn"));
     }
 
@@ -89,9 +94,7 @@ pub fn stop() -> anyhow::Result<()> {
     #[cfg(unix)]
     {
         use std::process::Command;
-        Command::new("kill")
-            .arg(pid.to_string())
-            .status()?;
+        Command::new("kill").arg(pid.to_string()).status()?;
     }
 
     #[cfg(not(unix))]
@@ -202,31 +205,42 @@ pub fn uninstall() -> anyhow::Result<()> {
 fn launchd_plist_path() -> std::path::PathBuf {
     // Use the system home dir (not SELFCLAW_HOME) for service config paths.
     dirs::home_dir()
-        .unwrap_or_else(|| home::home_dir().parent().unwrap_or(Path::new("/tmp")).to_path_buf())
+        .unwrap_or_else(|| {
+            home::home_dir()
+                .parent()
+                .unwrap_or(Path::new("/tmp"))
+                .to_path_buf()
+        })
         .join("Library/LaunchAgents/ai.selfclaw.agent.plist")
 }
 
 #[cfg(target_os = "macos")]
-fn install_launchd(
-    exe: &Path,
-    config: &Path,
-    memory: &Path,
-    log: &Path,
-) -> anyhow::Result<()> {
+fn install_launchd(exe: &Path, config: &Path, memory: &Path, log: &Path) -> anyhow::Result<()> {
     let plist_path = launchd_plist_path();
 
     if plist_path.exists() {
-        println!("  LaunchAgent already installed at {}", plist_path.display());
+        println!(
+            "  LaunchAgent already installed at {}",
+            plist_path.display()
+        );
         println!("  Use `selfclaw daemon uninstall` first to reinstall.");
         return Ok(());
     }
 
     // Collect API key env vars to forward into the daemon environment.
     let env_vars_to_forward = [
-        "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GOOGLE_API_KEY",
-        "OPENROUTER_API_KEY", "GROQ_API_KEY", "XAI_API_KEY",
-        "MISTRAL_API_KEY", "DEEPSEEK_API_KEY", "TOGETHER_API_KEY",
-        "MOONSHOT_API_KEY", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY",
+        "ANTHROPIC_API_KEY",
+        "OPENAI_API_KEY",
+        "GOOGLE_API_KEY",
+        "OPENROUTER_API_KEY",
+        "GROQ_API_KEY",
+        "XAI_API_KEY",
+        "MISTRAL_API_KEY",
+        "DEEPSEEK_API_KEY",
+        "TOGETHER_API_KEY",
+        "MOONSHOT_API_KEY",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
         "SELFCLAW_HOME",
     ];
     let mut extra_env = String::new();
@@ -315,31 +329,42 @@ fn uninstall_launchd() -> anyhow::Result<()> {
 
 fn systemd_unit_path() -> std::path::PathBuf {
     dirs::home_dir()
-        .unwrap_or_else(|| home::home_dir().parent().unwrap_or(Path::new("/tmp")).to_path_buf())
+        .unwrap_or_else(|| {
+            home::home_dir()
+                .parent()
+                .unwrap_or(Path::new("/tmp"))
+                .to_path_buf()
+        })
         .join(".config/systemd/user/selfclaw.service")
 }
 
 #[cfg(target_os = "linux")]
-fn install_systemd(
-    exe: &Path,
-    config: &Path,
-    memory: &Path,
-    _log: &Path,
-) -> anyhow::Result<()> {
+fn install_systemd(exe: &Path, config: &Path, memory: &Path, _log: &Path) -> anyhow::Result<()> {
     let unit_path = systemd_unit_path();
 
     if unit_path.exists() {
-        println!("  systemd unit already installed at {}", unit_path.display());
+        println!(
+            "  systemd unit already installed at {}",
+            unit_path.display()
+        );
         println!("  Use `selfclaw daemon uninstall` first to reinstall.");
         return Ok(());
     }
 
     // Collect API key env vars to forward into the service environment.
     let env_vars_to_forward = [
-        "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GOOGLE_API_KEY",
-        "OPENROUTER_API_KEY", "GROQ_API_KEY", "XAI_API_KEY",
-        "MISTRAL_API_KEY", "DEEPSEEK_API_KEY", "TOGETHER_API_KEY",
-        "MOONSHOT_API_KEY", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY",
+        "ANTHROPIC_API_KEY",
+        "OPENAI_API_KEY",
+        "GOOGLE_API_KEY",
+        "OPENROUTER_API_KEY",
+        "GROQ_API_KEY",
+        "XAI_API_KEY",
+        "MISTRAL_API_KEY",
+        "DEEPSEEK_API_KEY",
+        "TOGETHER_API_KEY",
+        "MOONSHOT_API_KEY",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
         "SELFCLAW_HOME",
     ];
     let mut env_lines = String::from("Environment=PATH=/usr/local/bin:/usr/bin:/bin\n");

@@ -50,7 +50,10 @@ pub fn execute() -> anyhow::Result<bool> {
         } else if config_ok {
             format!("{} (exists but invalid)", config_path.display())
         } else {
-            format!("{} (not found — run `selfclaw onboard`)", config_path.display())
+            format!(
+                "{} (not found — run `selfclaw onboard`)",
+                config_path.display()
+            )
         },
     });
 
@@ -112,12 +115,7 @@ pub fn execute() -> anyhow::Result<bool> {
                 .map(|entries| {
                     entries
                         .filter_map(|e| e.ok())
-                        .filter(|e| {
-                            e.path()
-                                .extension()
-                                .map(|ext| ext == "md")
-                                .unwrap_or(false)
-                        })
+                        .filter(|e| e.path().extension().map(|ext| ext == "md").unwrap_or(false))
                         .count()
                 })
                 .unwrap_or(0);
@@ -235,10 +233,7 @@ fn check_api_key(config_path: &Path) -> (bool, String) {
 
     (
         false,
-        format!(
-            "not found — set ${} or add api_key to config.toml",
-            env_var
-        ),
+        format!("not found — set ${} or add api_key to config.toml", env_var),
     )
 }
 

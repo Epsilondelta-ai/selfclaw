@@ -1,7 +1,7 @@
-pub mod state;
-pub mod purpose;
-pub mod prompt;
 pub mod loop_runner;
+pub mod prompt;
+pub mod purpose;
+pub mod state;
 
 pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")

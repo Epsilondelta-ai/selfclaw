@@ -133,11 +133,8 @@ impl WebChatChannel {
         let mut msg_counter: u64 = 0;
 
         while connected.load(Ordering::Relaxed) {
-            let accept = tokio::time::timeout(
-                std::time::Duration::from_secs(1),
-                listener.accept(),
-            )
-            .await;
+            let accept =
+                tokio::time::timeout(std::time::Duration::from_secs(1), listener.accept()).await;
 
             match accept {
                 Ok(Ok((mut stream, _addr))) => {
@@ -155,10 +152,8 @@ impl WebChatChannel {
                             if let Ok(json) = serde_json::from_str::<serde_json::Value>(body) {
                                 let content =
                                     json["content"].as_str().unwrap_or_default().to_string();
-                                let sender = json["sender"]
-                                    .as_str()
-                                    .unwrap_or("web-user")
-                                    .to_string();
+                                let sender =
+                                    json["sender"].as_str().unwrap_or("web-user").to_string();
 
                                 if !content.is_empty() {
                                     msg_counter += 1;

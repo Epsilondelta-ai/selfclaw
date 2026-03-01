@@ -155,7 +155,10 @@ pub async fn execute(config: SelfClawConfig, memory_dir: &str) -> anyhow::Result
         match ch.start(inbound_tx) {
             Ok(handle) => {
                 gateway.register_channel(handle);
-                println!("WebChat channel active (port {})", config.communication.webchat.port);
+                println!(
+                    "WebChat channel active (port {})",
+                    config.communication.webchat.port
+                );
             }
             Err(e) => eprintln!("Warning: WebChat channel failed: {}", e),
         }
@@ -168,7 +171,10 @@ pub async fn execute(config: SelfClawConfig, memory_dir: &str) -> anyhow::Result
         match ws.start(inbound_tx) {
             Ok(handle) => {
                 gateway.register_channel(handle);
-                println!("WebSocket server active (port {})", config.communication.web_ui_port);
+                println!(
+                    "WebSocket server active (port {})",
+                    config.communication.web_ui_port
+                );
                 Some(ws)
             }
             Err(e) => {
@@ -185,8 +191,11 @@ pub async fn execute(config: SelfClawConfig, memory_dir: &str) -> anyhow::Result
     println!("Press Ctrl+C to stop.");
     println!();
 
-    let _provider_kind = selfclaw_tools::llm::ProviderKind::from_str(&config.llm.provider);
-    println!("LLM provider: {} ({})", config.llm.provider, config.llm.model);
+    let _provider_kind = selfclaw_tools::llm::ProviderKind::parse(&config.llm.provider);
+    println!(
+        "LLM provider: {} ({})",
+        config.llm.provider, config.llm.model
+    );
     if let Some(ref url) = config.llm.base_url {
         println!("LLM base URL: {}", url);
     }

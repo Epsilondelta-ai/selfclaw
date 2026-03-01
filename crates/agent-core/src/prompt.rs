@@ -125,7 +125,10 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let store = FileMemoryStore::new(dir.path());
         store
-            .write("identity/self_model.md", "# Self Model\n\nI am a curious agent.")
+            .write(
+                "identity/self_model.md",
+                "# Self Model\n\nI am a curious agent.",
+            )
             .unwrap();
         store
             .write("identity/values.md", "# Values\n\n- Honesty\n- Growth")
@@ -177,11 +180,7 @@ mod tests {
         let tracker = PurposeTracker::new();
         let prompt = build_system_prompt(&store, &tracker, &[], None);
 
-        assert!(
-            prompt.contains("No hypothesis yet"),
-            "prompt: {}",
-            prompt
-        );
+        assert!(prompt.contains("No hypothesis yet"), "prompt: {}", prompt);
     }
 
     #[test]
@@ -230,11 +229,7 @@ mod tests {
         let (_dir, store) = setup_store();
         let ctx = build_reflection_context(&store, "2026-03-01");
 
-        assert!(
-            ctx.contains("Purpose Journal"),
-            "ctx: {}",
-            ctx
-        );
+        assert!(ctx.contains("Purpose Journal"), "ctx: {}", ctx);
         assert!(ctx.contains("Exploring meaning"), "ctx: {}", ctx);
     }
 
@@ -263,11 +258,7 @@ mod tests {
         let store = FileMemoryStore::new(dir.path());
         let ctx = build_reflection_context(&store, "2026-03-01");
 
-        assert!(
-            ctx.contains("fresh start"),
-            "ctx: {}",
-            ctx
-        );
+        assert!(ctx.contains("fresh start"), "ctx: {}", ctx);
     }
 
     #[test]
@@ -277,7 +268,11 @@ mod tests {
         let channels = vec!["cli".to_string(), "discord".to_string()];
         let prompt = build_system_prompt(&store, &tracker, &[], Some(&channels));
 
-        assert!(prompt.contains("Communication Channels"), "prompt: {}", prompt);
+        assert!(
+            prompt.contains("Communication Channels"),
+            "prompt: {}",
+            prompt
+        );
         assert!(prompt.contains("cli"), "prompt: {}", prompt);
         assert!(prompt.contains("discord"), "prompt: {}", prompt);
         assert!(prompt.contains("human_message"), "prompt: {}", prompt);
@@ -289,6 +284,10 @@ mod tests {
         let tracker = PurposeTracker::new();
         let prompt = build_system_prompt(&store, &tracker, &[], None);
 
-        assert!(!prompt.contains("Communication Channels"), "prompt: {}", prompt);
+        assert!(
+            !prompt.contains("Communication Channels"),
+            "prompt: {}",
+            prompt
+        );
     }
 }

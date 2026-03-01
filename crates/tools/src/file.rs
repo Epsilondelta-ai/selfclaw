@@ -15,10 +15,7 @@ fn resolve_safe(root: &std::path::Path, path: &str) -> Result<PathBuf, ToolError
         if joined.exists() {
             let canon = joined.canonicalize().map_err(ToolError::Io)?;
             if !canon.starts_with(&canon_root) {
-                return Err(ToolError::Safety(format!(
-                    "path escapes root: {}",
-                    path
-                )));
+                return Err(ToolError::Safety(format!("path escapes root: {}", path)));
             }
             return Ok(canon);
         }
@@ -46,18 +43,12 @@ fn resolve_safe(root: &std::path::Path, path: &str) -> Result<PathBuf, ToolError
         for comp in tail_parts.into_iter().rev() {
             // Reject ".." in the non-existing tail
             if comp == ".." {
-                return Err(ToolError::Safety(format!(
-                    "path escapes root: {}",
-                    path
-                )));
+                return Err(ToolError::Safety(format!("path escapes root: {}", path)));
             }
             rebuilt.push(comp);
         }
         if !rebuilt.starts_with(&canon_root) {
-            return Err(ToolError::Safety(format!(
-                "path escapes root: {}",
-                path
-            )));
+            return Err(ToolError::Safety(format!("path escapes root: {}", path)));
         }
         return Ok(rebuilt);
     }
@@ -134,9 +125,7 @@ impl Tool for FileWriteTool {
             std::fs::create_dir_all(parent)?;
         }
         std::fs::write(&full, content)?;
-        Ok(ToolOutput::ok(
-            serde_json::json!({ "written": path }),
-        ))
+        Ok(ToolOutput::ok(serde_json::json!({ "written": path })))
     }
 }
 
@@ -183,9 +172,7 @@ impl Tool for FileAppendTool {
             .open(&full)?;
         file.write_all(content.as_bytes())?;
 
-        Ok(ToolOutput::ok(
-            serde_json::json!({ "appended": path }),
-        ))
+        Ok(ToolOutput::ok(serde_json::json!({ "appended": path })))
     }
 }
 

@@ -1,9 +1,9 @@
-pub mod run;
 pub mod chat;
-pub mod status;
-pub mod memory;
-pub mod providers;
-pub mod init;
-pub mod onboard;
 pub mod daemon;
 pub mod doctor;
+pub mod init;
+pub mod memory;
+pub mod onboard;
+pub mod providers;
+pub mod run;
+pub mod status;

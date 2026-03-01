@@ -64,12 +64,13 @@ impl SkillWatcher {
         let dir = self.dir.clone();
         let registry = self.registry.clone();
 
-        let mut watcher = notify::recommended_watcher(move |result: Result<Event, notify::Error>| {
-            match result {
+        let mut watcher = notify::recommended_watcher(
+            move |result: Result<Event, notify::Error>| match result {
                 Ok(event) => {
-                    let is_md_change = event.paths.iter().any(|p| {
-                        p.extension().and_then(|e| e.to_str()) == Some("md")
-                    });
+                    let is_md_change = event
+                        .paths
+                        .iter()
+                        .any(|p| p.extension().and_then(|e| e.to_str()) == Some("md"));
 
                     let is_relevant = matches!(
                         event.kind,
@@ -97,8 +98,8 @@ impl SkillWatcher {
                 Err(e) => {
                     warn!(error = %e, "File watcher error");
                 }
-            }
-        })?;
+            },
+        )?;
 
         watcher.watch(&self.dir, RecursiveMode::NonRecursive)?;
         self._watcher = Some(watcher);
@@ -129,8 +130,11 @@ mod tests {
     fn test_initial_load() {
         let dir = TempDir::new().unwrap();
         let mut f = std::fs::File::create(dir.path().join("test.md")).unwrap();
-        write!(f, "# Skill: TestSkill\n## Trigger: test trigger\n## Procedure:\n1. Do.\n")
-            .unwrap();
+        write!(
+            f,
+            "# Skill: TestSkill\n## Trigger: test trigger\n## Procedure:\n1. Do.\n"
+        )
+        .unwrap();
 
         let registry = Arc::new(Mutex::new(SkillRegistry::new()));
         let watcher = SkillWatcher::new(dir.path(), registry.clone());
@@ -147,7 +151,11 @@ mod tests {
     fn test_reload() {
         let dir = TempDir::new().unwrap();
         let mut f = std::fs::File::create(dir.path().join("a.md")).unwrap();
-        write!(f, "# Skill: Alpha\n## Trigger: alpha\n## Procedure:\n1. A.\n").unwrap();
+        write!(
+            f,
+            "# Skill: Alpha\n## Trigger: alpha\n## Procedure:\n1. A.\n"
+        )
+        .unwrap();
 
         let registry = Arc::new(Mutex::new(SkillRegistry::new()));
         let watcher = SkillWatcher::new(dir.path(), registry.clone());
@@ -157,7 +165,11 @@ mod tests {
 
         // Add a second skill file
         let mut f2 = std::fs::File::create(dir.path().join("b.md")).unwrap();
-        write!(f2, "# Skill: Beta\n## Trigger: beta\n## Procedure:\n1. B.\n").unwrap();
+        write!(
+            f2,
+            "# Skill: Beta\n## Trigger: beta\n## Procedure:\n1. B.\n"
+        )
+        .unwrap();
 
         let count = watcher.reload().unwrap();
         assert_eq!(count, 2);
@@ -169,7 +181,11 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let path_a = dir.path().join("a.md");
         let mut f = std::fs::File::create(&path_a).unwrap();
-        write!(f, "# Skill: Alpha\n## Trigger: alpha\n## Procedure:\n1. A.\n").unwrap();
+        write!(
+            f,
+            "# Skill: Alpha\n## Trigger: alpha\n## Procedure:\n1. A.\n"
+        )
+        .unwrap();
 
         let registry = Arc::new(Mutex::new(SkillRegistry::new()));
         let watcher = SkillWatcher::new(dir.path(), registry.clone());
@@ -206,7 +222,11 @@ mod tests {
 
         // Start with one skill
         let mut f = std::fs::File::create(dir.path().join("a.md")).unwrap();
-        write!(f, "# Skill: Alpha\n## Trigger: alpha\n## Procedure:\n1. A.\n").unwrap();
+        write!(
+            f,
+            "# Skill: Alpha\n## Trigger: alpha\n## Procedure:\n1. A.\n"
+        )
+        .unwrap();
 
         let registry = Arc::new(Mutex::new(SkillRegistry::new()));
         let mut watcher = SkillWatcher::new(dir.path(), registry.clone());
@@ -216,7 +236,11 @@ mod tests {
 
         // Add a new skill file — the watcher should detect this
         let mut f2 = std::fs::File::create(dir.path().join("b.md")).unwrap();
-        write!(f2, "# Skill: Beta\n## Trigger: beta\n## Procedure:\n1. B.\n").unwrap();
+        write!(
+            f2,
+            "# Skill: Beta\n## Trigger: beta\n## Procedure:\n1. B.\n"
+        )
+        .unwrap();
         drop(f2); // Ensure file is flushed and closed
 
         // Give the filesystem watcher time to detect the change

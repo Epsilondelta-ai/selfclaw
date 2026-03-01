@@ -162,7 +162,10 @@ mod tests {
     fn test_config_path() {
         // config_path joins "config.toml" to home_dir
         let home = resolve_home(Some("/tmp/test-sc"));
-        assert_eq!(home.join("config.toml"), PathBuf::from("/tmp/test-sc/config.toml"));
+        assert_eq!(
+            home.join("config.toml"),
+            PathBuf::from("/tmp/test-sc/config.toml")
+        );
     }
 
     #[test]

@@ -34,13 +34,11 @@ impl<'a> MemoryIndex<'a> {
             }
         }
 
-        let mut content = String::from("# Memory Index\n\nAuto-generated index of all memory files.\n");
+        let mut content =
+            String::from("# Memory Index\n\nAuto-generated index of all memory files.\n");
 
         for (section, files) in &sections {
-            content.push_str(&format!(
-                "\n## {}\n",
-                capitalize_first(section)
-            ));
+            content.push_str(&format!("\n## {}\n", capitalize_first(section)));
             for file in files {
                 content.push_str(&format!("- `{}`\n", file));
             }
@@ -55,7 +53,12 @@ impl<'a> MemoryIndex<'a> {
         self.store.read(INDEX_PATH)
     }
 
-    fn collect_md_files(&self, dir: &str, out: &mut Vec<String>, depth: usize) -> Result<(), MemoryError> {
+    fn collect_md_files(
+        &self,
+        dir: &str,
+        out: &mut Vec<String>,
+        depth: usize,
+    ) -> Result<(), MemoryError> {
         if depth >= MAX_RECURSE_DEPTH {
             return Ok(());
         }
@@ -96,12 +99,8 @@ mod tests {
         store
             .write("identity/purpose_journal.md", "# Purpose Journal")
             .unwrap();
-        store
-            .write("identity/values.md", "# Values")
-            .unwrap();
-        store
-            .write("episodic/2026-03-01.md", "# Day log")
-            .unwrap();
+        store.write("identity/values.md", "# Values").unwrap();
+        store.write("episodic/2026-03-01.md", "# Day log").unwrap();
         store
             .write("meta/reflection_prompts.md", "# Prompts")
             .unwrap();
@@ -127,10 +126,26 @@ mod tests {
 
         let content = index.rebuild_index().unwrap();
 
-        assert!(content.contains("identity/purpose_journal.md"), "content: {}", content);
-        assert!(content.contains("identity/values.md"), "content: {}", content);
-        assert!(content.contains("episodic/2026-03-01.md"), "content: {}", content);
-        assert!(content.contains("meta/reflection_prompts.md"), "content: {}", content);
+        assert!(
+            content.contains("identity/purpose_journal.md"),
+            "content: {}",
+            content
+        );
+        assert!(
+            content.contains("identity/values.md"),
+            "content: {}",
+            content
+        );
+        assert!(
+            content.contains("episodic/2026-03-01.md"),
+            "content: {}",
+            content
+        );
+        assert!(
+            content.contains("meta/reflection_prompts.md"),
+            "content: {}",
+            content
+        );
     }
 
     #[test]

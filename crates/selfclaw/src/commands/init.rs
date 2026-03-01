@@ -143,7 +143,10 @@ pub fn execute_at(home: &Path, force: bool) -> anyhow::Result<()> {
     for dir in &dirs {
         if !dir.exists() {
             fs::create_dir_all(dir)?;
-            println!("  Created {}/", dir.strip_prefix(&home).unwrap_or(dir).display());
+            println!(
+                "  Created {}/",
+                dir.strip_prefix(&home).unwrap_or(dir).display()
+            );
         }
     }
 

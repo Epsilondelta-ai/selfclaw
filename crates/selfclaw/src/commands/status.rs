@@ -21,10 +21,19 @@ pub fn execute(config: SelfClawConfig, memory_dir: &str) -> anyhow::Result<()> {
     println!("    Loop interval:  {}s", config.agent.loop_interval_secs);
     println!("    LLM model:      {}", config.llm.model);
     println!("    CLI enabled:    {}", config.communication.cli_enabled);
-    println!("    Discord:        {}", config.communication.discord.enabled);
-    println!("    Telegram:       {}", config.communication.telegram.enabled);
+    println!(
+        "    Discord:        {}",
+        config.communication.discord.enabled
+    );
+    println!(
+        "    Telegram:       {}",
+        config.communication.telegram.enabled
+    );
     println!("    Slack:          {}", config.communication.slack.enabled);
-    println!("    WebChat:        {}", config.communication.webchat.enabled);
+    println!(
+        "    WebChat:        {}",
+        config.communication.webchat.enabled
+    );
     println!();
 
     // Purpose hypothesis
@@ -94,7 +103,11 @@ pub fn execute(config: SelfClawConfig, memory_dir: &str) -> anyhow::Result<()> {
         ("identity/purpose_journal.md", "Purpose journal"),
     ];
     for (path, label) in &identity_files {
-        let status = if store.exists(path) { "exists" } else { "missing" };
+        let status = if store.exists(path) {
+            "exists"
+        } else {
+            "missing"
+        };
         println!("    {}: {}", label, status);
     }
     println!();

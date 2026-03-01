@@ -61,7 +61,7 @@ impl ProviderKind {
 
 impl ProviderKind {
     /// Parse a provider string (case-insensitive) into a ProviderKind.
-    pub fn from_str(s: &str) -> Self {
+    pub fn parse(s: &str) -> Self {
         match s.to_lowercase().as_str() {
             "anthropic" | "claude" => Self::Anthropic,
             "openai" | "gpt" => Self::OpenAI,
@@ -314,10 +314,7 @@ impl LlmProvider for OpenAIProvider {
 
     fn build_headers(&self, api_key: &str) -> Vec<(String, String)> {
         vec![
-            (
-                "Authorization".to_string(),
-                format!("Bearer {}", api_key),
-            ),
+            ("Authorization".to_string(), format!("Bearer {}", api_key)),
             ("content-type".to_string(), "application/json".to_string()),
         ]
     }
@@ -346,10 +343,7 @@ impl LlmProvider for GoogleProvider {
 
     fn endpoint(&self) -> String {
         // Gemini uses model in URL; we use a placeholder replaced at call time.
-        format!(
-            "{}/v1beta/models/{{model}}:generateContent",
-            self.base_url
-        )
+        format!("{}/v1beta/models/{{model}}:generateContent", self.base_url)
     }
 
     fn build_request(
@@ -536,10 +530,7 @@ impl LlmProvider for OpenRouterProvider {
 
     fn build_headers(&self, api_key: &str) -> Vec<(String, String)> {
         vec![
-            (
-                "Authorization".to_string(),
-                format!("Bearer {}", api_key),
-            ),
+            ("Authorization".to_string(), format!("Bearer {}", api_key)),
             ("content-type".to_string(), "application/json".to_string()),
             (
                 "HTTP-Referer".to_string(),
@@ -612,10 +603,7 @@ impl LlmProvider for GroqProvider {
 
     fn build_headers(&self, api_key: &str) -> Vec<(String, String)> {
         vec![
-            (
-                "Authorization".to_string(),
-                format!("Bearer {}", api_key),
-            ),
+            ("Authorization".to_string(), format!("Bearer {}", api_key)),
             ("content-type".to_string(), "application/json".to_string()),
         ]
     }
@@ -683,10 +671,7 @@ impl LlmProvider for XAIProvider {
 
     fn build_headers(&self, api_key: &str) -> Vec<(String, String)> {
         vec![
-            (
-                "Authorization".to_string(),
-                format!("Bearer {}", api_key),
-            ),
+            ("Authorization".to_string(), format!("Bearer {}", api_key)),
             ("content-type".to_string(), "application/json".to_string()),
         ]
     }
@@ -754,10 +739,7 @@ impl LlmProvider for MistralProvider {
 
     fn build_headers(&self, api_key: &str) -> Vec<(String, String)> {
         vec![
-            (
-                "Authorization".to_string(),
-                format!("Bearer {}", api_key),
-            ),
+            ("Authorization".to_string(), format!("Bearer {}", api_key)),
             ("content-type".to_string(), "application/json".to_string()),
         ]
     }
@@ -825,10 +807,7 @@ impl LlmProvider for DeepSeekProvider {
 
     fn build_headers(&self, api_key: &str) -> Vec<(String, String)> {
         vec![
-            (
-                "Authorization".to_string(),
-                format!("Bearer {}", api_key),
-            ),
+            ("Authorization".to_string(), format!("Bearer {}", api_key)),
             ("content-type".to_string(), "application/json".to_string()),
         ]
     }
@@ -896,10 +875,7 @@ impl LlmProvider for TogetherProvider {
 
     fn build_headers(&self, api_key: &str) -> Vec<(String, String)> {
         vec![
-            (
-                "Authorization".to_string(),
-                format!("Bearer {}", api_key),
-            ),
+            ("Authorization".to_string(), format!("Bearer {}", api_key)),
             ("content-type".to_string(), "application/json".to_string()),
         ]
     }
@@ -967,10 +943,7 @@ impl LlmProvider for MoonshotProvider {
 
     fn build_headers(&self, api_key: &str) -> Vec<(String, String)> {
         vec![
-            (
-                "Authorization".to_string(),
-                format!("Bearer {}", api_key),
-            ),
+            ("Authorization".to_string(), format!("Bearer {}", api_key)),
             ("content-type".to_string(), "application/json".to_string()),
         ]
     }
@@ -999,10 +972,7 @@ impl LlmProvider for BedrockProvider {
 
     fn endpoint(&self) -> String {
         // Bedrock uses model ID in URL path
-        format!(
-            "{}/model/{{model}}/converse",
-            self.base_url
-        )
+        format!("{}/model/{{model}}/converse", self.base_url)
     }
 
     fn build_request(
@@ -1122,10 +1092,7 @@ impl LlmProvider for CustomProvider {
 
     fn build_headers(&self, api_key: &str) -> Vec<(String, String)> {
         vec![
-            (
-                "Authorization".to_string(),
-                format!("Bearer {}", api_key),
-            ),
+            ("Authorization".to_string(), format!("Bearer {}", api_key)),
             ("content-type".to_string(), "application/json".to_string()),
         ]
     }
@@ -1135,7 +1102,7 @@ impl LlmProvider for CustomProvider {
 
 /// Create the appropriate provider from config.
 pub fn create_provider(config: &selfclaw_config::LlmConfig) -> Box<dyn LlmProvider> {
-    let kind = ProviderKind::from_str(&config.provider);
+    let kind = ProviderKind::parse(&config.provider);
     let base_url = config.base_url.as_deref();
 
     match kind {
@@ -1201,8 +1168,13 @@ impl LlmCallTool {
 
     /// Build the request for inspection/testing without making an HTTP call.
     pub fn build_request(&self, prompt: &str, system: Option<&str>) -> serde_json::Value {
-        self.provider
-            .build_request(&self.model, self.max_tokens, self.temperature, prompt, system)
+        self.provider.build_request(
+            &self.model,
+            self.max_tokens,
+            self.temperature,
+            prompt,
+            system,
+        )
     }
 
     /// Get the provider kind.
@@ -1248,9 +1220,7 @@ impl Tool for LlmCallTool {
 
         let body = self.build_request(prompt, system);
         let endpoint = self.provider.endpoint().replace("{model}", &self.model);
-        let headers = self
-            .provider
-            .build_headers(api_key.unwrap_or(""));
+        let headers = self.provider.build_headers(api_key.unwrap_or(""));
 
         let rt = tokio::runtime::Handle::try_current();
         let response_result = match rt {
@@ -1264,8 +1234,8 @@ impl Tool for LlmCallTool {
                 .unwrap_or_else(|_| Err(ToolError::Http("LLM worker thread panicked".to_string())))
             }),
             Err(_) => {
-                let rt = tokio::runtime::Runtime::new()
-                    .map_err(|e| ToolError::Http(e.to_string()))?;
+                let rt =
+                    tokio::runtime::Runtime::new().map_err(|e| ToolError::Http(e.to_string()))?;
                 rt.block_on(Self::do_http_call(&endpoint, &headers, &body))
             }
         };
@@ -1329,22 +1299,22 @@ mod tests {
 
     #[test]
     fn test_provider_kind_from_str() {
-        assert_eq!(ProviderKind::from_str("anthropic"), ProviderKind::Anthropic);
-        assert_eq!(ProviderKind::from_str("claude"), ProviderKind::Anthropic);
-        assert_eq!(ProviderKind::from_str("ANTHROPIC"), ProviderKind::Anthropic);
-        assert_eq!(ProviderKind::from_str("openai"), ProviderKind::OpenAI);
-        assert_eq!(ProviderKind::from_str("gpt"), ProviderKind::OpenAI);
-        assert_eq!(ProviderKind::from_str("google"), ProviderKind::Google);
-        assert_eq!(ProviderKind::from_str("gemini"), ProviderKind::Google);
-        assert_eq!(ProviderKind::from_str("vertex"), ProviderKind::Google);
-        assert_eq!(ProviderKind::from_str("ollama"), ProviderKind::Ollama);
-        assert_eq!(ProviderKind::from_str("openrouter"), ProviderKind::OpenRouter);
-        assert_eq!(ProviderKind::from_str("groq"), ProviderKind::Groq);
-        assert_eq!(ProviderKind::from_str("xai"), ProviderKind::XAI);
-        assert_eq!(ProviderKind::from_str("grok"), ProviderKind::XAI);
-        assert_eq!(ProviderKind::from_str("mistral"), ProviderKind::Mistral);
-        assert_eq!(ProviderKind::from_str("deepseek"), ProviderKind::DeepSeek);
-        assert_eq!(ProviderKind::from_str("unknown"), ProviderKind::Custom);
+        assert_eq!(ProviderKind::parse("anthropic"), ProviderKind::Anthropic);
+        assert_eq!(ProviderKind::parse("claude"), ProviderKind::Anthropic);
+        assert_eq!(ProviderKind::parse("ANTHROPIC"), ProviderKind::Anthropic);
+        assert_eq!(ProviderKind::parse("openai"), ProviderKind::OpenAI);
+        assert_eq!(ProviderKind::parse("gpt"), ProviderKind::OpenAI);
+        assert_eq!(ProviderKind::parse("google"), ProviderKind::Google);
+        assert_eq!(ProviderKind::parse("gemini"), ProviderKind::Google);
+        assert_eq!(ProviderKind::parse("vertex"), ProviderKind::Google);
+        assert_eq!(ProviderKind::parse("ollama"), ProviderKind::Ollama);
+        assert_eq!(ProviderKind::parse("openrouter"), ProviderKind::OpenRouter);
+        assert_eq!(ProviderKind::parse("groq"), ProviderKind::Groq);
+        assert_eq!(ProviderKind::parse("xai"), ProviderKind::XAI);
+        assert_eq!(ProviderKind::parse("grok"), ProviderKind::XAI);
+        assert_eq!(ProviderKind::parse("mistral"), ProviderKind::Mistral);
+        assert_eq!(ProviderKind::parse("deepseek"), ProviderKind::DeepSeek);
+        assert_eq!(ProviderKind::parse("unknown"), ProviderKind::Custom);
     }
 
     #[test]
@@ -1356,9 +1326,15 @@ mod tests {
         assert_eq!(ProviderKind::OpenAI.default_model(), "gpt-5.2");
         assert_eq!(ProviderKind::Google.default_model(), "gemini-2.5-flash");
         assert_eq!(ProviderKind::Ollama.default_model(), "llama4");
-        assert_eq!(ProviderKind::Groq.default_model(), "llama-3.3-70b-versatile");
+        assert_eq!(
+            ProviderKind::Groq.default_model(),
+            "llama-3.3-70b-versatile"
+        );
         assert_eq!(ProviderKind::XAI.default_model(), "grok-4");
-        assert_eq!(ProviderKind::Mistral.default_model(), "mistral-large-latest");
+        assert_eq!(
+            ProviderKind::Mistral.default_model(),
+            "mistral-large-latest"
+        );
         assert_eq!(ProviderKind::DeepSeek.default_model(), "deepseek-chat");
     }
 
@@ -1395,7 +1371,13 @@ mod tests {
     #[test]
     fn test_anthropic_build_request() {
         let p = AnthropicProvider::new(None);
-        let req = p.build_request("claude-sonnet-4-6-20250217", 4096, 0.7, "Hello", Some("Be helpful"));
+        let req = p.build_request(
+            "claude-sonnet-4-6-20250217",
+            4096,
+            0.7,
+            "Hello",
+            Some("Be helpful"),
+        );
 
         assert_eq!(req["model"], "claude-sonnet-4-6-20250217");
         assert_eq!(req["max_tokens"], 4096);
@@ -1451,7 +1433,9 @@ mod tests {
     fn test_anthropic_headers() {
         let p = AnthropicProvider::new(None);
         let headers = p.build_headers("sk-test-key");
-        assert!(headers.iter().any(|(k, v)| k == "x-api-key" && v == "sk-test-key"));
+        assert!(headers
+            .iter()
+            .any(|(k, v)| k == "x-api-key" && v == "sk-test-key"));
         assert!(headers
             .iter()
             .any(|(k, v)| k == "anthropic-version" && v == "2023-06-01"));
@@ -1525,10 +1509,7 @@ mod tests {
             .unwrap()
             .contains("Hello"));
         assert_eq!(req["generationConfig"]["maxOutputTokens"], 4096);
-        assert_eq!(
-            req["systemInstruction"]["parts"][0]["text"],
-            "System text"
-        );
+        assert_eq!(req["systemInstruction"]["parts"][0]["text"], "System text");
     }
 
     #[test]
@@ -1729,10 +1710,7 @@ mod tests {
         let resp = serde_json::json!({
             "content": [{ "type": "text", "text": "Anthropic-like response" }]
         });
-        assert_eq!(
-            p.parse_response(&resp).unwrap(),
-            "Anthropic-like response"
-        );
+        assert_eq!(p.parse_response(&resp).unwrap(), "Anthropic-like response");
     }
 
     #[test]
@@ -1801,10 +1779,7 @@ mod tests {
         };
         let p = create_provider(&config);
         assert_eq!(p.kind(), ProviderKind::Custom);
-        assert_eq!(
-            p.endpoint(),
-            "http://my-server:9090/v1/chat/completions"
-        );
+        assert_eq!(p.endpoint(), "http://my-server:9090/v1/chat/completions");
     }
 
     // ── LlmCallTool ─────────────────────────────────────────────
@@ -1960,10 +1935,7 @@ mod tests {
             "Hello",
             Some("System"),
         );
-        assert_eq!(
-            req["model"],
-            "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"
-        );
+        assert_eq!(req["model"], "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo");
     }
 
     #[test]
@@ -1978,10 +1950,7 @@ mod tests {
     #[test]
     fn test_together_endpoint() {
         let p = TogetherProvider::new(None);
-        assert_eq!(
-            p.endpoint(),
-            "https://api.together.xyz/v1/chat/completions"
-        );
+        assert_eq!(p.endpoint(), "https://api.together.xyz/v1/chat/completions");
     }
 
     // ── Moonshot provider ───────────────────────────────────────
@@ -2005,10 +1974,7 @@ mod tests {
     #[test]
     fn test_moonshot_endpoint() {
         let p = MoonshotProvider::new(None);
-        assert_eq!(
-            p.endpoint(),
-            "https://api.moonshot.cn/v1/chat/completions"
-        );
+        assert_eq!(p.endpoint(), "https://api.moonshot.cn/v1/chat/completions");
     }
 
     // ── Bedrock provider ────────────────────────────────────────
@@ -2055,35 +2021,14 @@ mod tests {
 
     #[test]
     fn test_provider_kind_from_str_new_providers() {
-        assert_eq!(
-            ProviderKind::from_str("together"),
-            ProviderKind::Together
-        );
-        assert_eq!(
-            ProviderKind::from_str("together-ai"),
-            ProviderKind::Together
-        );
-        assert_eq!(
-            ProviderKind::from_str("togetherai"),
-            ProviderKind::Together
-        );
-        assert_eq!(
-            ProviderKind::from_str("moonshot"),
-            ProviderKind::Moonshot
-        );
-        assert_eq!(ProviderKind::from_str("kimi"), ProviderKind::Moonshot);
-        assert_eq!(
-            ProviderKind::from_str("bedrock"),
-            ProviderKind::Bedrock
-        );
-        assert_eq!(
-            ProviderKind::from_str("amazon-bedrock"),
-            ProviderKind::Bedrock
-        );
-        assert_eq!(
-            ProviderKind::from_str("aws-bedrock"),
-            ProviderKind::Bedrock
-        );
+        assert_eq!(ProviderKind::parse("together"), ProviderKind::Together);
+        assert_eq!(ProviderKind::parse("together-ai"), ProviderKind::Together);
+        assert_eq!(ProviderKind::parse("togetherai"), ProviderKind::Together);
+        assert_eq!(ProviderKind::parse("moonshot"), ProviderKind::Moonshot);
+        assert_eq!(ProviderKind::parse("kimi"), ProviderKind::Moonshot);
+        assert_eq!(ProviderKind::parse("bedrock"), ProviderKind::Bedrock);
+        assert_eq!(ProviderKind::parse("amazon-bedrock"), ProviderKind::Bedrock);
+        assert_eq!(ProviderKind::parse("aws-bedrock"), ProviderKind::Bedrock);
     }
 
     #[test]

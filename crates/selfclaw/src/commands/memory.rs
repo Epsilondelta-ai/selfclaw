@@ -54,7 +54,14 @@ pub fn execute(memory_dir: &str, path: &str) -> anyhow::Result<()> {
                 eprintln!();
                 eprintln!("  Available directories:");
                 // Try to list common directories
-                for dir in &["identity", "episodic", "semantic", "relational", "operational", "meta"] {
+                for dir in &[
+                    "identity",
+                    "episodic",
+                    "semantic",
+                    "relational",
+                    "operational",
+                    "meta",
+                ] {
                     if let Ok(files) = store.list(dir) {
                         if !files.is_empty() {
                             eprintln!("    {}/", dir);

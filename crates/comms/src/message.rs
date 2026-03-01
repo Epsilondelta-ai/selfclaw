@@ -38,7 +38,6 @@ pub enum MessageIntent {
     System,
 }
 
-
 impl MessageIntent {
     pub fn display_str(&self) -> &'static str {
         match self {

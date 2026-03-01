@@ -131,7 +131,10 @@ impl Default for Gateway {
 mod tests {
     use super::*;
 
-    fn make_handle(kind: ChannelKind, connected: bool) -> (ChannelHandle, mpsc::UnboundedReceiver<OutboundMessage>) {
+    fn make_handle(
+        kind: ChannelKind,
+        connected: bool,
+    ) -> (ChannelHandle, mpsc::UnboundedReceiver<OutboundMessage>) {
         let (tx, rx) = mpsc::unbounded_channel();
         let handle = ChannelHandle {
             kind: kind.clone(),

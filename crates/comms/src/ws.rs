@@ -330,7 +330,10 @@ impl WebSocketServer {
                     }
                 }
                 Ok(WsMessage::Close(_)) => {
-                    info!(client_id = client_id, "WebSocket client disconnected (close frame)");
+                    info!(
+                        client_id = client_id,
+                        "WebSocket client disconnected (close frame)"
+                    );
                     break;
                 }
                 Ok(WsMessage::Ping(data)) => {
@@ -534,14 +537,11 @@ mod tests {
         tokio::time::sleep(std::time::Duration::from_millis(200)).await;
 
         // Read the message from the client
-        let received = tokio::time::timeout(
-            std::time::Duration::from_secs(2),
-            ws_stream.next(),
-        )
-        .await
-        .expect("Timeout waiting for message")
-        .expect("Stream ended")
-        .expect("Error receiving message");
+        let received = tokio::time::timeout(std::time::Duration::from_secs(2), ws_stream.next())
+            .await
+            .expect("Timeout waiting for message")
+            .expect("Stream ended")
+            .expect("Error receiving message");
 
         match received {
             WsMessage::Text(text) => {
@@ -578,14 +578,11 @@ mod tests {
         tokio::time::sleep(std::time::Duration::from_millis(200)).await;
 
         // Client should receive the message as a chat protocol message
-        let received = tokio::time::timeout(
-            std::time::Duration::from_secs(2),
-            ws_stream.next(),
-        )
-        .await
-        .expect("Timeout waiting for message")
-        .expect("Stream ended")
-        .expect("Error receiving message");
+        let received = tokio::time::timeout(std::time::Duration::from_secs(2), ws_stream.next())
+            .await
+            .expect("Timeout waiting for message")
+            .expect("Stream ended")
+            .expect("Error receiving message");
 
         match received {
             WsMessage::Text(text) => {

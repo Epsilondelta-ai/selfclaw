@@ -14,7 +14,11 @@ impl<'a, S: MemoryStore> EpisodicLogger<'a, S> {
     /// Append a timestamped entry to today's episodic log.
     pub fn log(&self, content: &str) -> Result<(), MemoryError> {
         let now = Utc::now();
-        self.log_for_date(now.format("%Y-%m-%d").to_string().as_str(), content, &now.format("%H:%M:%S UTC").to_string())
+        self.log_for_date(
+            now.format("%Y-%m-%d").to_string().as_str(),
+            content,
+            &now.format("%H:%M:%S UTC").to_string(),
+        )
     }
 
     /// Append a timestamped entry to a specific date's log.
@@ -28,10 +32,8 @@ impl<'a, S: MemoryStore> EpisodicLogger<'a, S> {
 
         // If the file doesn't exist, create it with a header.
         if !self.store.exists(&path) {
-            self.store.write(
-                &path,
-                &format!("# Episodic Log: {}\n\n", date),
-            )?;
+            self.store
+                .write(&path, &format!("# Episodic Log: {}\n\n", date))?;
         }
 
         let entry = format!("## [{}]\n\n{}\n\n---\n\n", time_str, content);
@@ -93,8 +95,16 @@ mod tests {
             .unwrap();
 
         let content = store.read("episodic/2026-03-01.md").unwrap();
-        assert!(content.contains("## [14:30:00 UTC]"), "content: {}", content);
-        assert!(content.contains("Something happened"), "content: {}", content);
+        assert!(
+            content.contains("## [14:30:00 UTC]"),
+            "content: {}",
+            content
+        );
+        assert!(
+            content.contains("Something happened"),
+            "content: {}",
+            content
+        );
         assert!(content.contains("---"), "content: {}", content);
     }
 

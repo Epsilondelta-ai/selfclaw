@@ -107,7 +107,11 @@ pub fn parse_skill(content: &str, source_path: Option<&str>) -> Result<Skill, Lo
                             collecting_text = true;
                         }
                     } else if h.starts_with("Tools Required:") {
-                        let inline = h.strip_prefix("Tools Required:").unwrap().trim().to_string();
+                        let inline = h
+                            .strip_prefix("Tools Required:")
+                            .unwrap()
+                            .trim()
+                            .to_string();
                         if !inline.is_empty() {
                             tools_required = inline
                                 .split(',')
@@ -318,10 +322,18 @@ mod tests {
         let dir = TempDir::new().unwrap();
 
         let mut f1 = std::fs::File::create(dir.path().join("skill1.md")).unwrap();
-        write!(f1, "# Skill: Alpha\n## Trigger: test alpha\n## Procedure:\n1. Step.\n").unwrap();
+        write!(
+            f1,
+            "# Skill: Alpha\n## Trigger: test alpha\n## Procedure:\n1. Step.\n"
+        )
+        .unwrap();
 
         let mut f2 = std::fs::File::create(dir.path().join("skill2.md")).unwrap();
-        write!(f2, "# Skill: Beta\n## Trigger: test beta\n## Procedure:\n1. Step.\n").unwrap();
+        write!(
+            f2,
+            "# Skill: Beta\n## Trigger: test beta\n## Procedure:\n1. Step.\n"
+        )
+        .unwrap();
 
         // Non-md file should be ignored
         let mut f3 = std::fs::File::create(dir.path().join("readme.txt")).unwrap();
@@ -346,7 +358,11 @@ mod tests {
         let dir = TempDir::new().unwrap();
 
         let mut f1 = std::fs::File::create(dir.path().join("good.md")).unwrap();
-        write!(f1, "# Skill: Good\n## Trigger: test\n## Procedure:\n1. Yes.\n").unwrap();
+        write!(
+            f1,
+            "# Skill: Good\n## Trigger: test\n## Procedure:\n1. Yes.\n"
+        )
+        .unwrap();
 
         let mut f2 = std::fs::File::create(dir.path().join("bad.md")).unwrap();
         write!(f2, "This is not a valid skill file at all.").unwrap();

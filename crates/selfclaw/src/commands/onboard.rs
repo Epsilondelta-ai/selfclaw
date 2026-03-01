@@ -50,7 +50,10 @@ pub fn execute(install_daemon: bool, reset: bool) -> anyhow::Result<()> {
 
     // Step 1: Initialize directory structure
     let total_steps = if is_quick { 4 } else { 6 };
-    println!("Step 1/{}: Initializing directory structure...", total_steps);
+    println!(
+        "Step 1/{}: Initializing directory structure...",
+        total_steps
+    );
     super::init::execute(reset)?;
     println!();
 
@@ -77,7 +80,10 @@ pub fn execute(install_daemon: bool, reset: bool) -> anyhow::Result<()> {
 
     // Build final config and write it.
     let step_write = if is_quick { 3 } else { 4 };
-    println!("Step {}/{}: Writing configuration...", step_write, total_steps);
+    println!(
+        "Step {}/{}: Writing configuration...",
+        step_write, total_steps
+    );
     let toml_str = build_config_toml(&config_table, &channels)?;
     let config_path = home::config_path();
     fs::write(&config_path, &toml_str)?;
@@ -130,7 +136,11 @@ pub fn execute(install_daemon: bool, reset: bool) -> anyhow::Result<()> {
     println!();
 
     if is_quick {
-        println!("  Provider: {} ({})", provider_name, default_model_for(&provider_name));
+        println!(
+            "  Provider: {} ({})",
+            provider_name,
+            default_model_for(&provider_name)
+        );
         println!("  Run `selfclaw onboard --reset` for advanced setup anytime.");
         println!();
     }
@@ -155,12 +165,18 @@ fn configure_llm_quick() -> anyhow::Result<(toml::map::Map<String, toml::Value>,
         if use_detected {
             (p.to_string(), m.to_string())
         } else {
-            ("anthropic".to_string(), default_model_for("anthropic").to_string())
+            (
+                "anthropic".to_string(),
+                default_model_for("anthropic").to_string(),
+            )
         }
     } else {
         println!("  No API key detected in environment.");
         println!("  Defaulting to Anthropic (Claude). Set ANTHROPIC_API_KEY to authenticate.");
-        ("anthropic".to_string(), default_model_for("anthropic").to_string())
+        (
+            "anthropic".to_string(),
+            default_model_for("anthropic").to_string(),
+        )
     };
 
     let mut llm = toml::map::Map::new();
@@ -175,15 +191,27 @@ fn configure_llm_quick() -> anyhow::Result<(toml::map::Map<String, toml::Value>,
 /// Check common env vars to auto-detect the provider.
 fn detect_provider_from_env() -> Option<(&'static str, &'static str)> {
     let checks = [
-        ("ANTHROPIC_API_KEY", "anthropic", "claude-sonnet-4-6-20250217"),
+        (
+            "ANTHROPIC_API_KEY",
+            "anthropic",
+            "claude-sonnet-4-6-20250217",
+        ),
         ("OPENAI_API_KEY", "openai", "gpt-5.2"),
         ("GOOGLE_API_KEY", "google", "gemini-2.5-flash"),
-        ("OPENROUTER_API_KEY", "openrouter", "anthropic/claude-sonnet-4-6-20250217"),
+        (
+            "OPENROUTER_API_KEY",
+            "openrouter",
+            "anthropic/claude-sonnet-4-6-20250217",
+        ),
         ("GROQ_API_KEY", "groq", "llama-3.3-70b-versatile"),
         ("XAI_API_KEY", "xai", "grok-4"),
         ("MISTRAL_API_KEY", "mistral", "mistral-large-latest"),
         ("DEEPSEEK_API_KEY", "deepseek", "deepseek-chat"),
-        ("TOGETHER_API_KEY", "together", "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"),
+        (
+            "TOGETHER_API_KEY",
+            "together",
+            "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+        ),
         ("MOONSHOT_API_KEY", "moonshot", "kimi-k2.5"),
     ];
 
@@ -216,8 +244,19 @@ fn configure_llm_advanced() -> anyhow::Result<(toml::map::Map<String, toml::Valu
     ];
 
     let provider_keys = [
-        "anthropic", "openai", "google", "ollama", "openrouter", "groq",
-        "xai", "mistral", "deepseek", "together", "moonshot", "bedrock", "custom",
+        "anthropic",
+        "openai",
+        "google",
+        "ollama",
+        "openrouter",
+        "groq",
+        "xai",
+        "mistral",
+        "deepseek",
+        "together",
+        "moonshot",
+        "bedrock",
+        "custom",
     ];
 
     let selection = Select::new()
@@ -252,12 +291,13 @@ fn configure_llm_advanced() -> anyhow::Result<(toml::map::Map<String, toml::Valu
             if use_env {
                 String::new()
             } else {
-                Input::new()
-                    .with_prompt("API key")
-                    .interact_text()?
+                Input::new().with_prompt("API key").interact_text()?
             }
         } else {
-            println!("  Tip: You can also set the {} environment variable.", env_var);
+            println!(
+                "  Tip: You can also set the {} environment variable.",
+                env_var
+            );
             Input::new()
                 .with_prompt("API key (or press Enter to set env var later)")
                 .default(String::new())
@@ -268,9 +308,7 @@ fn configure_llm_advanced() -> anyhow::Result<(toml::map::Map<String, toml::Valu
 
     // Custom base URL
     let base_url = if provider == "custom" {
-        let url: String = Input::new()
-            .with_prompt("API base URL")
-            .interact_text()?;
+        let url: String = Input::new().with_prompt("API base URL").interact_text()?;
         url
     } else {
         let want_custom = Confirm::new()
@@ -279,9 +317,7 @@ fn configure_llm_advanced() -> anyhow::Result<(toml::map::Map<String, toml::Valu
             .interact()?;
 
         if want_custom {
-            Input::new()
-                .with_prompt("API base URL")
-                .interact_text()?
+            Input::new().with_prompt("API base URL").interact_text()?
         } else {
             String::new()
         }
@@ -384,7 +420,10 @@ fn build_config_toml(
     // [agent]
     let mut agent = toml::map::Map::new();
     agent.insert("loop_interval_secs".into(), toml::Value::Integer(60));
-    agent.insert("consolidation_every_n_cycles".into(), toml::Value::Integer(50));
+    agent.insert(
+        "consolidation_every_n_cycles".into(),
+        toml::Value::Integer(50),
+    );
     agent.insert("max_actions_per_cycle".into(), toml::Value::Integer(5));
     config.insert("agent".into(), toml::Value::Table(agent));
 
@@ -396,11 +435,14 @@ fn build_config_toml(
     safety.insert("max_api_calls_per_hour".into(), toml::Value::Integer(100));
     safety.insert("max_file_writes_per_cycle".into(), toml::Value::Integer(10));
     safety.insert("sandbox_shell".into(), toml::Value::Boolean(true));
-    safety.insert("allowed_directories".into(), toml::Value::Array(vec![
-        toml::Value::String("./memory".into()),
-        toml::Value::String("./skills".into()),
-        toml::Value::String("./output".into()),
-    ]));
+    safety.insert(
+        "allowed_directories".into(),
+        toml::Value::Array(vec![
+            toml::Value::String("./memory".into()),
+            toml::Value::String("./skills".into()),
+            toml::Value::String("./output".into()),
+        ]),
+    );
     config.insert("safety".into(), toml::Value::Table(safety));
 
     // [communication]
@@ -411,24 +453,54 @@ fn build_config_toml(
 
     // [communication.discord]
     let mut discord = toml::map::Map::new();
-    discord.insert("enabled".into(), toml::Value::Boolean(!channels.discord_token.is_empty()));
-    discord.insert("bot_token".into(), toml::Value::String(channels.discord_token.clone()));
-    discord.insert("allowed_channel_ids".into(), parse_id_list(&channels.discord_channels));
+    discord.insert(
+        "enabled".into(),
+        toml::Value::Boolean(!channels.discord_token.is_empty()),
+    );
+    discord.insert(
+        "bot_token".into(),
+        toml::Value::String(channels.discord_token.clone()),
+    );
+    discord.insert(
+        "allowed_channel_ids".into(),
+        parse_id_list(&channels.discord_channels),
+    );
     comm.insert("discord".into(), toml::Value::Table(discord));
 
     // [communication.telegram]
     let mut telegram = toml::map::Map::new();
-    telegram.insert("enabled".into(), toml::Value::Boolean(!channels.telegram_token.is_empty()));
-    telegram.insert("bot_token".into(), toml::Value::String(channels.telegram_token.clone()));
-    telegram.insert("allowed_chat_ids".into(), parse_id_list(&channels.telegram_chats));
+    telegram.insert(
+        "enabled".into(),
+        toml::Value::Boolean(!channels.telegram_token.is_empty()),
+    );
+    telegram.insert(
+        "bot_token".into(),
+        toml::Value::String(channels.telegram_token.clone()),
+    );
+    telegram.insert(
+        "allowed_chat_ids".into(),
+        parse_id_list(&channels.telegram_chats),
+    );
     comm.insert("telegram".into(), toml::Value::Table(telegram));
 
     // [communication.slack]
     let mut slack = toml::map::Map::new();
-    slack.insert("enabled".into(), toml::Value::Boolean(!channels.slack_bot_token.is_empty()));
-    slack.insert("bot_token".into(), toml::Value::String(channels.slack_bot_token.clone()));
-    slack.insert("app_token".into(), toml::Value::String(channels.slack_app_token.clone()));
-    slack.insert("allowed_channel_ids".into(), parse_id_list(&channels.slack_channels));
+    slack.insert(
+        "enabled".into(),
+        toml::Value::Boolean(!channels.slack_bot_token.is_empty()),
+    );
+    slack.insert(
+        "bot_token".into(),
+        toml::Value::String(channels.slack_bot_token.clone()),
+    );
+    slack.insert(
+        "app_token".into(),
+        toml::Value::String(channels.slack_app_token.clone()),
+    );
+    slack.insert(
+        "allowed_channel_ids".into(),
+        parse_id_list(&channels.slack_channels),
+    );
     comm.insert("slack".into(), toml::Value::Table(slack));
 
     // [communication.webchat]
@@ -526,26 +598,33 @@ mod tests {
     #[test]
     fn test_parse_id_list_single() {
         let result = parse_id_list("123456");
-        assert_eq!(result, toml::Value::Array(vec![
-            toml::Value::String("123456".into()),
-        ]));
+        assert_eq!(
+            result,
+            toml::Value::Array(vec![toml::Value::String("123456".into()),])
+        );
     }
 
     #[test]
     fn test_parse_id_list_multiple() {
         let result = parse_id_list("111, 222, 333");
-        assert_eq!(result, toml::Value::Array(vec![
-            toml::Value::String("111".into()),
-            toml::Value::String("222".into()),
-            toml::Value::String("333".into()),
-        ]));
+        assert_eq!(
+            result,
+            toml::Value::Array(vec![
+                toml::Value::String("111".into()),
+                toml::Value::String("222".into()),
+                toml::Value::String("333".into()),
+            ])
+        );
     }
 
     #[test]
     fn test_build_config_toml_valid() {
         let mut llm = toml::map::Map::new();
         llm.insert("provider".into(), toml::Value::String("anthropic".into()));
-        llm.insert("model".into(), toml::Value::String("claude-sonnet-4-6-20250217".into()));
+        llm.insert(
+            "model".into(),
+            toml::Value::String("claude-sonnet-4-6-20250217".into()),
+        );
         llm.insert("max_tokens".into(), toml::Value::Integer(4096));
         llm.insert("temperature".into(), toml::Value::Float(0.7));
 
@@ -574,7 +653,10 @@ mod tests {
         llm.insert("provider".into(), toml::Value::String("openai".into()));
         llm.insert("model".into(), toml::Value::String("gpt-5.2".into()));
         // API key with special characters that would break naive string interpolation.
-        llm.insert("api_key".into(), toml::Value::String("sk-abc\"def\\ghi\nnewline".into()));
+        llm.insert(
+            "api_key".into(),
+            toml::Value::String("sk-abc\"def\\ghi\nnewline".into()),
+        );
         llm.insert("max_tokens".into(), toml::Value::Integer(4096));
         llm.insert("temperature".into(), toml::Value::Float(0.7));
 
@@ -600,7 +682,10 @@ mod tests {
     fn test_build_config_with_channels() {
         let mut llm = toml::map::Map::new();
         llm.insert("provider".into(), toml::Value::String("anthropic".into()));
-        llm.insert("model".into(), toml::Value::String("claude-sonnet-4-6-20250217".into()));
+        llm.insert(
+            "model".into(),
+            toml::Value::String("claude-sonnet-4-6-20250217".into()),
+        );
         llm.insert("max_tokens".into(), toml::Value::Integer(4096));
         llm.insert("temperature".into(), toml::Value::Float(0.7));
 

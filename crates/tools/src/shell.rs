@@ -27,10 +27,7 @@ impl ShellExecTool {
     }
 
     pub fn from_config(config: &selfclaw_config::SafetyConfig) -> Self {
-        Self::new(
-            config.sandbox_shell,
-            config.allowed_directories.clone(),
-        )
+        Self::new(config.sandbox_shell, config.allowed_directories.clone())
     }
 
     fn check_safety(&self, command: &str) -> Result<(), ToolError> {
@@ -86,10 +83,7 @@ impl Tool for ShellExecTool {
 
         self.check_safety(command)?;
 
-        let output = Command::new("sh")
-            .arg("-c")
-            .arg(command)
-            .output()?;
+        let output = Command::new("sh").arg("-c").arg(command).output()?;
 
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();

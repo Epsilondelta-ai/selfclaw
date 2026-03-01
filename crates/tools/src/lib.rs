@@ -1,8 +1,8 @@
-pub mod registry;
 pub mod file;
-pub mod shell;
 pub mod llm;
+pub mod registry;
 pub mod scheduler;
+pub mod shell;
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
