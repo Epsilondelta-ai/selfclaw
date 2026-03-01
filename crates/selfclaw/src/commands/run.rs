@@ -73,8 +73,9 @@ pub async fn execute(config: SelfClawConfig, memory_dir: &str) -> anyhow::Result
 
     println!("Tools registered: {:?}", tools.names());
 
-    // Load skills from skills/ directory
-    let skills_dir = Path::new("./skills");
+    // Load skills from skills/ directory (prefer ~/.selfclaw/skills/)
+    let skills_path = crate::home::resolve_skills_dir();
+    let skills_dir = skills_path.as_path();
     let skill_registry = Arc::new(Mutex::new(SkillRegistry::new()));
     let mut skill_watcher = SkillWatcher::new(skills_dir, skill_registry.clone());
 

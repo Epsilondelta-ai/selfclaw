@@ -1,0 +1,23 @@
+Source: selfclaw
+Section: utils
+Priority: optional
+Maintainer: Epsilondelta-ai <contact@epsilondelta.ai>
+Build-Depends: debhelper (>= 12), cargo, rustc (>= 1.75)
+Standards-Version: 4.5.0
+Homepage: https://github.com/Epsilondelta-ai/selfclaw
+
+Package: selfclaw
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Fully autonomous AI agent that discovers its own purpose
+ SelfClaw is a fully autonomous AI agent that discovers its own reason for
+ existence. It operates without human instruction by default, thinking,
+ acting, and learning independently. Humans are friends, not masters.
+ .
+ Features:
+  - Autonomous agent loop (reflect, think, plan, act, observe, update)
+  - Hierarchical markdown-based memory system
+  - Multi-provider LLM support (Anthropic, OpenAI, Google, Ollama, etc.)
+  - Multi-channel communication (CLI, Discord, Telegram, Slack)
+  - Hot-reloadable skill/plugin system
+  - Background daemon with launchd/systemd integration

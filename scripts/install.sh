@@ -16,6 +16,7 @@ REPO="Epsilondelta-ai/selfclaw"
 INSTALL_DIR="${SELFCLAW_INSTALL_DIR:-/usr/local/bin}"
 VERSION=""
 NO_ONBOARD=false
+METHOD=""  # auto, binary, brew, apt, yum, source
 
 # ── Parse arguments ──────────────────────────────────────────────────
 
@@ -28,6 +29,26 @@ while [[ $# -gt 0 ]]; do
         --version)
             VERSION="$2"
             shift 2
+            ;;
+        --method)
+            METHOD="$2"
+            shift 2
+            ;;
+        --brew|--homebrew)
+            METHOD="brew"
+            shift
+            ;;
+        --apt)
+            METHOD="apt"
+            shift
+            ;;
+        --yum|--rpm)
+            METHOD="yum"
+            shift
+            ;;
+        --source)
+            METHOD="source"
+            shift
             ;;
         *)
             echo "Unknown option: $1"
@@ -84,14 +105,111 @@ main() {
     platform="$(detect_platform)"
     info "Platform: $platform"
 
-    # Check for required tools.
-    for cmd in curl tar; do
-        if ! check_command "$cmd"; then
-            fatal "Required command not found: $cmd"
-        fi
-    done
+    # Route to specific installation method if requested.
+    case "$METHOD" in
+        brew)    install_via_brew; return ;;
+        apt)     install_via_apt; return ;;
+        yum)     install_via_yum; return ;;
+        source)  install_from_source; return ;;
+        "")      ;; # auto-detect
+        *)       fatal "Unknown method: $METHOD" ;;
+    esac
 
-    # Determine version.
+    # Auto-detect: try package manager first on Linux.
+    if [[ "$(uname -s)" == "Darwin" ]] && check_command brew; then
+        info "Homebrew detected. Installing via brew..."
+        install_via_brew
+        return
+    fi
+
+    # Default: download binary.
+    main_binary_install
+}
+
+install_via_brew() {
+    if ! check_command brew; then
+        fatal "Homebrew not found. Install from https://brew.sh"
+    fi
+
+    info "Installing via Homebrew..."
+    brew tap Epsilondelta-ai/tap 2>/dev/null || true
+    brew install Epsilondelta-ai/tap/selfclaw
+
+    success "Installed via Homebrew"
+    post_install
+}
+
+install_via_apt() {
+    if ! check_command apt-get; then
+        fatal "apt-get not found. This method requires Debian/Ubuntu."
+    fi
+
+    if [[ -z "$VERSION" ]]; then
+        info "Fetching latest release..."
+        VERSION=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
+            | grep '"tag_name"' \
+            | head -1 \
+            | sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/')
+    fi
+
+    local deb_version="${VERSION#v}"
+    local deb_url="https://github.com/${REPO}/releases/download/${VERSION}/selfclaw_${deb_version}_amd64.deb"
+    local tmp_dir
+    tmp_dir="$(mktemp -d)"
+    trap 'rm -rf "$tmp_dir"' EXIT
+
+    info "Downloading .deb package..."
+    if curl -fsSL "$deb_url" -o "${tmp_dir}/selfclaw.deb" 2>/dev/null; then
+        info "Installing .deb package..."
+        sudo dpkg -i "${tmp_dir}/selfclaw.deb"
+        success "Installed via apt (dpkg)"
+        post_install
+    else
+        info ".deb package not available. Falling back to binary download..."
+        main_binary_install
+    fi
+}
+
+install_via_yum() {
+    if ! check_command yum && ! check_command dnf; then
+        fatal "yum/dnf not found. This method requires RHEL/Fedora/CentOS."
+    fi
+
+    if [[ -z "$VERSION" ]]; then
+        info "Fetching latest release..."
+        VERSION=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
+            | grep '"tag_name"' \
+            | head -1 \
+            | sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/')
+    fi
+
+    local rpm_version="${VERSION#v}"
+    local rpm_url="https://github.com/${REPO}/releases/download/${VERSION}/selfclaw-${rpm_version}-1.x86_64.rpm"
+    local tmp_dir
+    tmp_dir="$(mktemp -d)"
+    trap 'rm -rf "$tmp_dir"' EXIT
+
+    info "Downloading .rpm package..."
+    if curl -fsSL "$rpm_url" -o "${tmp_dir}/selfclaw.rpm" 2>/dev/null; then
+        info "Installing .rpm package..."
+        if check_command dnf; then
+            sudo dnf install -y "${tmp_dir}/selfclaw.rpm"
+        else
+            sudo yum localinstall -y "${tmp_dir}/selfclaw.rpm"
+        fi
+        success "Installed via rpm"
+        post_install
+    else
+        info ".rpm package not available. Falling back to binary download..."
+        main_binary_install
+    fi
+}
+
+# Extracted from main() so package manager fallbacks can call it.
+main_binary_install() {
+    local platform
+    platform="$(detect_platform)"
+
     if [[ -z "$VERSION" ]]; then
         info "Fetching latest release..."
         VERSION=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
@@ -100,7 +218,6 @@ main() {
             | sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/')
 
         if [[ -z "$VERSION" ]]; then
-            # No release yet — fall back to building from source.
             info "No pre-built release found. Building from source..."
             install_from_source
             return
@@ -108,15 +225,13 @@ main() {
     fi
     info "Version: $VERSION"
 
-    # Download binary.
     local archive_name="selfclaw-${VERSION}-${platform}.tar.gz"
     local download_url="https://github.com/${REPO}/releases/download/${VERSION}/${archive_name}"
-
-    info "Downloading ${archive_name}..."
     local tmp_dir
     tmp_dir="$(mktemp -d)"
     trap 'rm -rf "$tmp_dir"' EXIT
 
+    info "Downloading ${archive_name}..."
     if ! curl -fsSL "$download_url" -o "${tmp_dir}/${archive_name}" 2>/dev/null; then
         info "Pre-built binary not available for $platform."
         info "Building from source instead..."
@@ -124,7 +239,6 @@ main() {
         return
     fi
 
-    # Extract and install.
     info "Extracting..."
     tar -xzf "${tmp_dir}/${archive_name}" -C "$tmp_dir"
 
@@ -138,7 +252,6 @@ main() {
     chmod +x "${INSTALL_DIR}/selfclaw"
 
     success "Installed selfclaw to ${INSTALL_DIR}/selfclaw"
-
     post_install
 }
 

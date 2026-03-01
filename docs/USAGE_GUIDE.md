@@ -45,7 +45,51 @@ The installer script will:
 4. Run `selfclaw init` to create `~/.selfclaw/`
 5. Launch the onboarding wizard
 
-### Method B: Build from Source
+Installer options:
+
+| Flag | Description |
+|------|-------------|
+| `--no-onboard` | Skip the onboarding wizard |
+| `--version VER` | Install a specific version (e.g. `v0.1.0`) |
+| `--brew` | Force Homebrew installation |
+| `--apt` | Force apt/deb installation |
+| `--yum` | Force yum/rpm installation |
+| `--source` | Force build from source |
+
+### Method B: Homebrew (macOS / Linux)
+
+```bash
+brew tap Epsilondelta-ai/tap
+brew install selfclaw
+```
+
+After installation:
+
+```bash
+selfclaw init
+selfclaw onboard
+```
+
+### Method C: apt (Debian / Ubuntu)
+
+```bash
+# Download the .deb from the latest release
+curl -LO https://github.com/Epsilondelta-ai/selfclaw/releases/latest/download/selfclaw_0.1.0_amd64.deb
+sudo dpkg -i selfclaw_0.1.0_amd64.deb
+```
+
+The post-install script automatically runs `selfclaw init`.
+
+### Method D: yum / dnf (Fedora / RHEL / CentOS)
+
+```bash
+# Download the .rpm from the latest release
+curl -LO https://github.com/Epsilondelta-ai/selfclaw/releases/latest/download/selfclaw-0.1.0-1.x86_64.rpm
+sudo yum localinstall selfclaw-0.1.0-1.x86_64.rpm
+# Or: sudo dnf install selfclaw-0.1.0-1.x86_64.rpm
+```
+
+### Method E: Build from Source
 
 Requires Rust 1.75+ and Cargo.
 
@@ -53,12 +97,12 @@ Requires Rust 1.75+ and Cargo.
 git clone https://github.com/Epsilondelta-ai/selfclaw.git
 cd selfclaw
 cargo build --release
-cp target/release/selfclaw /usr/local/bin/
+sudo cp target/release/selfclaw /usr/local/bin/
 selfclaw init
 selfclaw onboard
 ```
 
-### Method C: GitHub Releases
+### Method F: GitHub Releases
 
 Download pre-built binaries from [Releases](https://github.com/Epsilondelta-ai/selfclaw/releases):
 
@@ -68,6 +112,8 @@ Download pre-built binaries from [Releases](https://github.com/Epsilondelta-ai/s
 | macOS | Intel | `selfclaw-*-macos-x86_64.tar.gz` |
 | Linux | x86_64 | `selfclaw-*-linux-x86_64.tar.gz` |
 | Linux | ARM64 | `selfclaw-*-linux-aarch64.tar.gz` |
+| Debian/Ubuntu | x86_64 | `selfclaw_*_amd64.deb` |
+| RHEL/Fedora | x86_64 | `selfclaw-*-1.x86_64.rpm` |
 
 ```bash
 # Example: macOS Apple Silicon

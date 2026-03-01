@@ -97,6 +97,15 @@ pub fn resolve_memory_dir(flag_value: &str) -> PathBuf {
     flag_path.to_path_buf()
 }
 
+/// Resolve skills dir: prefer home dir, then project-local.
+pub fn resolve_skills_dir() -> PathBuf {
+    let home_skills = skills_dir();
+    if home_skills.exists() {
+        return home_skills;
+    }
+    PathBuf::from("./skills")
+}
+
 /// Check if SelfClaw has been initialized (home dir exists with config).
 pub fn is_initialized() -> bool {
     home_dir().exists() && config_path().exists()

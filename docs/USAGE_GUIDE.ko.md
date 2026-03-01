@@ -43,7 +43,51 @@ curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/selfclaw/main/scrip
 4. `selfclaw init` 실행하여 `~/.selfclaw/` 생성
 5. 온보딩 마법사 시작
 
-### 방법 B: 소스 빌드
+설치 옵션:
+
+| 플래그 | 설명 |
+|--------|------|
+| `--no-onboard` | 온보딩 마법사 건너뛰기 |
+| `--version VER` | 특정 버전 설치 (예: `v0.1.0`) |
+| `--brew` | Homebrew 설치 강제 |
+| `--apt` | apt/deb 설치 강제 |
+| `--yum` | yum/rpm 설치 강제 |
+| `--source` | 소스 빌드 강제 |
+
+### 방법 B: Homebrew (macOS / Linux)
+
+```bash
+brew tap Epsilondelta-ai/tap
+brew install selfclaw
+```
+
+설치 후:
+
+```bash
+selfclaw init
+selfclaw onboard
+```
+
+### 방법 C: apt (Debian / Ubuntu)
+
+```bash
+# 최신 릴리스에서 .deb 다운로드
+curl -LO https://github.com/Epsilondelta-ai/selfclaw/releases/latest/download/selfclaw_0.1.0_amd64.deb
+sudo dpkg -i selfclaw_0.1.0_amd64.deb
+```
+
+포스트 인스톨 스크립트가 자동으로 `selfclaw init`을 실행합니다.
+
+### 방법 D: yum / dnf (Fedora / RHEL / CentOS)
+
+```bash
+# 최신 릴리스에서 .rpm 다운로드
+curl -LO https://github.com/Epsilondelta-ai/selfclaw/releases/latest/download/selfclaw-0.1.0-1.x86_64.rpm
+sudo yum localinstall selfclaw-0.1.0-1.x86_64.rpm
+# 또는: sudo dnf install selfclaw-0.1.0-1.x86_64.rpm
+```
+
+### 방법 E: 소스 빌드
 
 Rust 1.75+ 및 Cargo 필요.
 
@@ -51,12 +95,12 @@ Rust 1.75+ 및 Cargo 필요.
 git clone https://github.com/Epsilondelta-ai/selfclaw.git
 cd selfclaw
 cargo build --release
-cp target/release/selfclaw /usr/local/bin/
+sudo cp target/release/selfclaw /usr/local/bin/
 selfclaw init
 selfclaw onboard
 ```
 
-### 방법 C: GitHub Releases
+### 방법 F: GitHub Releases
 
 [Releases](https://github.com/Epsilondelta-ai/selfclaw/releases)에서 미리 빌드된 바이너리를 다운로드:
 
@@ -66,6 +110,8 @@ selfclaw onboard
 | macOS | Intel | `selfclaw-*-macos-x86_64.tar.gz` |
 | Linux | x86_64 | `selfclaw-*-linux-x86_64.tar.gz` |
 | Linux | ARM64 | `selfclaw-*-linux-aarch64.tar.gz` |
+| Debian/Ubuntu | x86_64 | `selfclaw_*_amd64.deb` |
+| RHEL/Fedora | x86_64 | `selfclaw-*-1.x86_64.rpm` |
 
 ```bash
 # 예시: macOS Apple Silicon

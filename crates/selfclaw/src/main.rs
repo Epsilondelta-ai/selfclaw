@@ -119,6 +119,13 @@ async fn main() -> anyhow::Result<()> {
         _ => {}
     }
 
+    // Auto-init on first run if ~/.selfclaw/ doesn't exist.
+    if !home::is_initialized() {
+        println!("First run detected. Initializing SelfClaw...\n");
+        commands::init::execute(false)?;
+        println!();
+    }
+
     // Resolve config and memory paths (prefer ~/.selfclaw/ if initialized).
     let config_path = home::resolve_config(&cli.config);
     let memory_dir = home::resolve_memory_dir(&cli.memory_dir);

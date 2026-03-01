@@ -1,0 +1,19 @@
+#!/bin/sh
+set -e
+
+# Initialize SelfClaw for the installing user
+if [ -x /usr/bin/selfclaw ]; then
+    echo "Initializing SelfClaw..."
+    # Run init as the user (not root) if possible
+    if [ -n "$SUDO_USER" ]; then
+        su - "$SUDO_USER" -c "selfclaw init" || true
+    fi
+fi
+
+echo ""
+echo "SelfClaw installed successfully!"
+echo ""
+echo "  selfclaw onboard     # Interactive setup wizard"
+echo "  selfclaw run          # Start the agent"
+echo "  selfclaw daemon start # Run as background service"
+echo ""

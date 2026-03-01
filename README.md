@@ -75,6 +75,34 @@ This will download the binary (or build from source), initialize `~/.selfclaw/`,
 Options:
 - `--no-onboard` — Skip the onboarding wizard
 - `--version v0.1.0` — Install a specific version
+- `--brew` — Force Homebrew installation
+- `--apt` — Force apt/deb installation
+- `--yum` — Force yum/rpm installation
+- `--source` — Force build from source
+
+### Homebrew (macOS / Linux)
+
+```bash
+brew tap Epsilondelta-ai/tap
+brew install selfclaw
+```
+
+### apt (Debian / Ubuntu)
+
+```bash
+# Download the .deb from the latest release
+curl -LO https://github.com/Epsilondelta-ai/selfclaw/releases/latest/download/selfclaw_0.1.0_amd64.deb
+sudo dpkg -i selfclaw_0.1.0_amd64.deb
+```
+
+### yum / dnf (Fedora / RHEL / CentOS)
+
+```bash
+# Download the .rpm from the latest release
+curl -LO https://github.com/Epsilondelta-ai/selfclaw/releases/latest/download/selfclaw-0.1.0-1.x86_64.rpm
+sudo yum localinstall selfclaw-0.1.0-1.x86_64.rpm
+# Or: sudo dnf install selfclaw-0.1.0-1.x86_64.rpm
+```
 
 ### From Source
 
@@ -82,7 +110,7 @@ Options:
 git clone https://github.com/Epsilondelta-ai/selfclaw.git
 cd selfclaw
 cargo build --release
-cp target/release/selfclaw /usr/local/bin/
+sudo cp target/release/selfclaw /usr/local/bin/
 selfclaw init
 selfclaw onboard
 ```
@@ -91,12 +119,14 @@ selfclaw onboard
 
 Download pre-built binaries from [Releases](https://github.com/Epsilondelta-ai/selfclaw/releases):
 
-| Platform | Architecture | Download |
-|----------|-------------|----------|
+| Platform | Architecture | File |
+|----------|-------------|------|
 | macOS | Apple Silicon (M1+) | `selfclaw-*-macos-aarch64.tar.gz` |
 | macOS | Intel | `selfclaw-*-macos-x86_64.tar.gz` |
 | Linux | x86_64 | `selfclaw-*-linux-x86_64.tar.gz` |
 | Linux | ARM64 | `selfclaw-*-linux-aarch64.tar.gz` |
+| Debian/Ubuntu | x86_64 | `selfclaw_*_amd64.deb` |
+| RHEL/Fedora | x86_64 | `selfclaw-*-1.x86_64.rpm` |
 
 ## Getting Started
 
