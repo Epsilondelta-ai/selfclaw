@@ -23,7 +23,7 @@ pub enum ConfigError {
 
 // ── Config structs ───────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct SelfClawConfig {
     #[serde(default)]
     pub agent: AgentConfig,
@@ -222,16 +222,6 @@ fn default_webchat_port() -> u16 {
 
 // ── Default trait impls ──────────────────────────────────────────────
 
-impl Default for SelfClawConfig {
-    fn default() -> Self {
-        Self {
-            agent: AgentConfig::default(),
-            llm: LlmConfig::default(),
-            safety: SafetyConfig::default(),
-            communication: CommsConfig::default(),
-        }
-    }
-}
 
 impl Default for AgentConfig {
     fn default() -> Self {

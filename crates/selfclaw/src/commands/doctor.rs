@@ -259,13 +259,14 @@ mod tests {
     #[test]
     fn test_doctor_after_init() {
         let tmp = TempDir::new().unwrap();
-        std::env::set_var("SELFCLAW_HOME", tmp.path().join(".selfclaw"));
-        super::super::init::execute(false).unwrap();
+        let home = tmp.path().join(".selfclaw");
+        std::env::set_var("SELFCLAW_HOME", &home);
+        super::super::init::execute_at(&home, false).unwrap();
         let result = execute();
+        std::env::remove_var("SELFCLAW_HOME");
         assert!(result.is_ok());
         // After init, most checks should pass (except maybe daemon and API key).
         let _all_passed = result.unwrap();
-        std::env::remove_var("SELFCLAW_HOME");
     }
 
     #[test]

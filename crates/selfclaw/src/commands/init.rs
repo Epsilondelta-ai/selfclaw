@@ -121,9 +121,15 @@ const BOOTSTRAP_FILES: &[BootstrapFile] = &[
 ];
 
 pub fn execute(force: bool) -> anyhow::Result<()> {
-    let home = home::home_dir();
+    execute_at(&home::home_dir(), force)
+}
 
-    if home.exists() && !force && home::is_initialized() {
+/// Initialize SelfClaw at a specific home directory path.
+pub fn execute_at(home: &Path, force: bool) -> anyhow::Result<()> {
+    let home = home.to_path_buf();
+    let config_path = home.join("config.toml");
+
+    if home.exists() && !force && config_path.exists() {
         println!("SelfClaw is already initialized at {}", home.display());
         println!("Use `selfclaw init --force` to reinitialize.");
         return Ok(());
@@ -131,11 +137,13 @@ pub fn execute(force: bool) -> anyhow::Result<()> {
 
     println!("Initializing SelfClaw at {}...\n", home.display());
 
-    // Create all directories.
-    for dir in home::all_dirs() {
+    // Build the directory list from the captured home path directly
+    // instead of calling home::all_dirs() which re-reads the env var.
+    let dirs = all_subdirs(&home);
+    for dir in &dirs {
         if !dir.exists() {
-            fs::create_dir_all(&dir)?;
-            println!("  Created {}/", dir.strip_prefix(&home).unwrap_or(&dir).display());
+            fs::create_dir_all(dir)?;
+            println!("  Created {}/", dir.strip_prefix(&home).unwrap_or(dir).display());
         }
     }
 
@@ -152,7 +160,6 @@ pub fn execute(force: bool) -> anyhow::Result<()> {
     }
 
     // Write default config if missing.
-    let config_path = home::config_path();
     if !config_path.exists() || force {
         write_default_config(&config_path)?;
         println!("  Wrote config.toml");
@@ -165,6 +172,27 @@ pub fn execute(force: bool) -> anyhow::Result<()> {
     println!("  selfclaw doctor     # Check installation health");
 
     Ok(())
+}
+
+/// Build the list of subdirectories to create from a given home path.
+fn all_subdirs(home: &Path) -> Vec<std::path::PathBuf> {
+    vec![
+        home.to_path_buf(),
+        home.join("memory"),
+        home.join("memory/identity"),
+        home.join("memory/episodic"),
+        home.join("memory/semantic"),
+        home.join("memory/semantic/knowledge"),
+        home.join("memory/semantic/skills"),
+        home.join("memory/relational"),
+        home.join("memory/relational/humans"),
+        home.join("memory/operational"),
+        home.join("memory/meta"),
+        home.join("skills"),
+        home.join("output"),
+        home.join("logs"),
+        home.join("state"),
+    ]
 }
 
 fn write_default_config(path: &Path) -> anyhow::Result<()> {
@@ -207,10 +235,9 @@ mod tests {
     #[test]
     fn test_init_creates_directory_structure() {
         let tmp = TempDir::new().unwrap();
-        std::env::set_var("SELFCLAW_HOME", tmp.path().join(".selfclaw"));
-        execute(false).unwrap();
+        let home = tmp.path().join(".selfclaw");
+        execute_at(&home, false).unwrap();
 
-        let home = home::home_dir();
         assert!(home.join("memory/identity").exists());
         assert!(home.join("memory/episodic").exists());
         assert!(home.join("memory/semantic/knowledge").exists());
@@ -221,16 +248,14 @@ mod tests {
         assert!(home.join("output").exists());
         assert!(home.join("logs").exists());
         assert!(home.join("state").exists());
-        std::env::remove_var("SELFCLAW_HOME");
     }
 
     #[test]
     fn test_init_creates_bootstrap_files() {
         let tmp = TempDir::new().unwrap();
-        std::env::set_var("SELFCLAW_HOME", tmp.path().join(".selfclaw"));
-        execute(false).unwrap();
+        let home = tmp.path().join(".selfclaw");
+        execute_at(&home, false).unwrap();
 
-        let home = home::home_dir();
         assert!(home.join("memory/identity/self_model.md").exists());
         assert!(home.join("memory/identity/values.md").exists());
         assert!(home.join("memory/identity/purpose_journal.md").exists());
@@ -240,31 +265,27 @@ mod tests {
 
         let content = fs::read_to_string(home.join("memory/identity/self_model.md")).unwrap();
         assert!(content.contains("SelfClaw"));
-        std::env::remove_var("SELFCLAW_HOME");
     }
 
     #[test]
     fn test_init_idempotent() {
         let tmp = TempDir::new().unwrap();
-        std::env::set_var("SELFCLAW_HOME", tmp.path().join(".selfclaw"));
-        execute(false).unwrap();
+        let home = tmp.path().join(".selfclaw");
+        execute_at(&home, false).unwrap();
         // Second call should succeed without error.
-        execute(false).unwrap();
-        std::env::remove_var("SELFCLAW_HOME");
+        execute_at(&home, false).unwrap();
     }
 
     #[test]
     fn test_init_force_overwrites() {
         let tmp = TempDir::new().unwrap();
-        std::env::set_var("SELFCLAW_HOME", tmp.path().join(".selfclaw"));
-        execute(false).unwrap();
+        let home = tmp.path().join(".selfclaw");
+        execute_at(&home, false).unwrap();
 
-        let home = home::home_dir();
         fs::write(home.join("memory/identity/values.md"), "custom").unwrap();
 
-        execute(true).unwrap();
+        execute_at(&home, true).unwrap();
         let content = fs::read_to_string(home.join("memory/identity/values.md")).unwrap();
         assert!(content.contains("Curiosity")); // Overwritten by bootstrap
-        std::env::remove_var("SELFCLAW_HOME");
     }
 }

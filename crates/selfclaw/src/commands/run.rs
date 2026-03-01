@@ -92,7 +92,7 @@ pub async fn execute(config: SelfClawConfig, memory_dir: &str) -> anyhow::Result
 
     // List loaded skill names
     {
-        let reg = skill_registry.lock().expect("skill registry lock poisoned");
+        let reg = skill_registry.lock().unwrap_or_else(|e| e.into_inner());
         let names = reg.names();
         if !names.is_empty() {
             println!("Available skills: {:?}", names);

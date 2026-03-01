@@ -1261,7 +1261,7 @@ impl Tool for LlmCallTool {
                     rt.block_on(Self::do_http_call(&endpoint, &headers, &body))
                 })
                 .join()
-                .unwrap()
+                .unwrap_or_else(|_| Err(ToolError::Http("LLM worker thread panicked".to_string())))
             }),
             Err(_) => {
                 let rt = tokio::runtime::Runtime::new()

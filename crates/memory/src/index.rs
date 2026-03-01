@@ -3,6 +3,7 @@ use std::path::Path;
 use crate::store::{FileMemoryStore, MemoryError, MemoryStore};
 
 const INDEX_PATH: &str = "meta/memory_index.md";
+const MAX_RECURSE_DEPTH: usize = 16;
 
 pub struct MemoryIndex<'a> {
     store: &'a FileMemoryStore,
@@ -26,7 +27,7 @@ impl<'a> MemoryIndex<'a> {
             }
 
             let mut files = Vec::new();
-            self.collect_md_files(dir_name, &mut files)?;
+            self.collect_md_files(dir_name, &mut files, 0)?;
 
             if !files.is_empty() {
                 sections.push((dir_name.clone(), files));
@@ -54,13 +55,16 @@ impl<'a> MemoryIndex<'a> {
         self.store.read(INDEX_PATH)
     }
 
-    fn collect_md_files(&self, dir: &str, out: &mut Vec<String>) -> Result<(), MemoryError> {
+    fn collect_md_files(&self, dir: &str, out: &mut Vec<String>, depth: usize) -> Result<(), MemoryError> {
+        if depth >= MAX_RECURSE_DEPTH {
+            return Ok(());
+        }
         let entries = self.store.list(dir)?;
         for entry in entries {
             let path = format!("{}/{}", dir, entry);
             let full = self.store.root().join(&path);
             if full.is_dir() {
-                self.collect_md_files(&path, out)?;
+                self.collect_md_files(&path, out, depth + 1)?;
             } else if entry.ends_with(".md") {
                 out.push(path);
             }

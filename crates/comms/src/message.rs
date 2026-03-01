@@ -23,9 +23,10 @@ impl std::fmt::Display for ChannelKind {
 }
 
 /// Classification of intent behind a message.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum MessageIntent {
     /// A general conversational message.
+    #[default]
     Chat,
     /// A command or instruction to the agent.
     Command,
@@ -37,11 +38,6 @@ pub enum MessageIntent {
     System,
 }
 
-impl Default for MessageIntent {
-    fn default() -> Self {
-        MessageIntent::Chat
-    }
-}
 
 impl MessageIntent {
     pub fn display_str(&self) -> &'static str {

@@ -2,6 +2,69 @@ use std::path::PathBuf;
 
 use crate::{Tool, ToolError, ToolOutput};
 
+/// Resolve `path` relative to `root` and verify the result stays within `root`.
+///
+/// For existing paths, canonicalization catches symlink escapes.
+/// For non-existing paths, we normalize away `..` components manually so that
+/// e.g. `../../etc/passwd` is rejected even before the file is created.
+fn resolve_safe(root: &std::path::Path, path: &str) -> Result<PathBuf, ToolError> {
+    let joined = root.join(path);
+
+    if let Ok(canon_root) = root.canonicalize() {
+        // For existing paths, canonicalize and compare.
+        if joined.exists() {
+            let canon = joined.canonicalize().map_err(ToolError::Io)?;
+            if !canon.starts_with(&canon_root) {
+                return Err(ToolError::Safety(format!(
+                    "path escapes root: {}",
+                    path
+                )));
+            }
+            return Ok(canon);
+        }
+
+        // For non-existing paths, canonicalize the longest existing ancestor
+        // and then re-attach the remaining components to check containment.
+        let mut existing = joined.as_path();
+        let mut tail_parts: Vec<&std::ffi::OsStr> = Vec::new();
+        loop {
+            if existing.exists() {
+                break;
+            }
+            match existing.parent() {
+                Some(parent) => {
+                    if let Some(comp) = existing.file_name() {
+                        tail_parts.push(comp);
+                    }
+                    existing = parent;
+                }
+                None => break,
+            }
+        }
+        let canon_existing = existing.canonicalize().map_err(ToolError::Io)?;
+        let mut rebuilt = canon_existing;
+        for comp in tail_parts.into_iter().rev() {
+            // Reject ".." in the non-existing tail
+            if comp == ".." {
+                return Err(ToolError::Safety(format!(
+                    "path escapes root: {}",
+                    path
+                )));
+            }
+            rebuilt.push(comp);
+        }
+        if !rebuilt.starts_with(&canon_root) {
+            return Err(ToolError::Safety(format!(
+                "path escapes root: {}",
+                path
+            )));
+        }
+        return Ok(rebuilt);
+    }
+
+    Ok(joined)
+}
+
 // ── FileReadTool ─────────────────────────────────────────────────────
 
 pub struct FileReadTool {
@@ -11,26 +74,6 @@ pub struct FileReadTool {
 impl FileReadTool {
     pub fn new(root: impl Into<PathBuf>) -> Self {
         Self { root: root.into() }
-    }
-
-    fn resolve(&self, path: &str) -> Result<PathBuf, ToolError> {
-        let resolved = self.root.join(path);
-        if let Ok(canon_root) = self.root.canonicalize() {
-            // For existing files, verify they're under root
-            if resolved.exists() {
-                let canon = resolved
-                    .canonicalize()
-                    .map_err(ToolError::Io)?;
-                if !canon.starts_with(&canon_root) {
-                    return Err(ToolError::Safety(format!(
-                        "path escapes root: {}",
-                        path
-                    )));
-                }
-                return Ok(canon);
-            }
-        }
-        Ok(resolved)
     }
 }
 
@@ -49,7 +92,7 @@ impl Tool for FileReadTool {
             .and_then(|v| v.as_str())
             .ok_or_else(|| ToolError::MissingField("path".to_string()))?;
 
-        let full = self.resolve(path)?;
+        let full = resolve_safe(&self.root, path)?;
         let content = std::fs::read_to_string(&full)?;
         Ok(ToolOutput::ok(serde_json::json!({ "content": content })))
     }
@@ -86,7 +129,7 @@ impl Tool for FileWriteTool {
             .and_then(|v| v.as_str())
             .ok_or_else(|| ToolError::MissingField("content".to_string()))?;
 
-        let full = self.root.join(path);
+        let full = resolve_safe(&self.root, path)?;
         if let Some(parent) = full.parent() {
             std::fs::create_dir_all(parent)?;
         }
@@ -128,7 +171,7 @@ impl Tool for FileAppendTool {
             .and_then(|v| v.as_str())
             .ok_or_else(|| ToolError::MissingField("content".to_string()))?;
 
-        let full = self.root.join(path);
+        let full = resolve_safe(&self.root, path)?;
         if let Some(parent) = full.parent() {
             std::fs::create_dir_all(parent)?;
         }
@@ -273,6 +316,58 @@ mod tests {
         let tool = FileAppendTool::new(dir.path());
         let result = tool.execute(serde_json::json!({ "path": "f.txt" }));
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_file_read_rejects_path_traversal() {
+        let dir = TempDir::new().unwrap();
+        // Create a file outside the root to try reading it
+        let outside = dir.path().join("../outside.txt");
+        std::fs::write(&outside, "secret").ok();
+
+        let tool = FileReadTool::new(dir.path());
+        let result = tool.execute(serde_json::json!({ "path": "../outside.txt" }));
+        // If the outside file exists, this should be a Safety error
+        if outside.exists() {
+            assert!(
+                matches!(result, Err(ToolError::Safety(_))),
+                "expected Safety error, got: {:?}",
+                result
+            );
+            std::fs::remove_file(outside).ok();
+        }
+    }
+
+    #[test]
+    fn test_file_write_rejects_path_traversal() {
+        let dir = TempDir::new().unwrap();
+        let tool = FileWriteTool::new(dir.path());
+
+        let result = tool.execute(serde_json::json!({
+            "path": "../../escape.txt",
+            "content": "pwned"
+        }));
+        assert!(
+            matches!(result, Err(ToolError::Safety(_))),
+            "expected Safety error, got: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_file_append_rejects_path_traversal() {
+        let dir = TempDir::new().unwrap();
+        let tool = FileAppendTool::new(dir.path());
+
+        let result = tool.execute(serde_json::json!({
+            "path": "../../escape.txt",
+            "content": "pwned"
+        }));
+        assert!(
+            matches!(result, Err(ToolError::Safety(_))),
+            "expected Safety error, got: {:?}",
+            result
+        );
     }
 
     #[test]

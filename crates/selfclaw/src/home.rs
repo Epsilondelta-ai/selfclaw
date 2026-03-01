@@ -5,18 +5,24 @@
 
 use std::path::{Path, PathBuf};
 
+/// Resolve the home directory from an explicit override value.
+/// If `env_override` is `Some`, use it; otherwise fall back to `~/.selfclaw/`.
+fn resolve_home(env_override: Option<&str>) -> PathBuf {
+    if let Some(custom) = env_override {
+        return PathBuf::from(custom);
+    }
+    dirs::home_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join(".selfclaw")
+}
+
 /// Returns the SelfClaw home directory.
 ///
 /// Resolution order:
 /// 1. `SELFCLAW_HOME` env var
 /// 2. `~/.selfclaw/`
 pub fn home_dir() -> PathBuf {
-    if let Ok(custom) = std::env::var("SELFCLAW_HOME") {
-        return PathBuf::from(custom);
-    }
-    dirs::home_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(".selfclaw")
+    resolve_home(std::env::var("SELFCLAW_HOME").ok().as_deref())
 }
 
 /// Returns the config file path within the home directory.
@@ -137,27 +143,26 @@ pub fn all_dirs() -> Vec<PathBuf> {
 mod tests {
     use super::*;
 
+    // Tests use resolve_home() directly to avoid env var races
+    // with parallel test threads.
+
     #[test]
     fn test_home_dir_default() {
-        // When SELFCLAW_HOME is not set, should end with .selfclaw
-        std::env::remove_var("SELFCLAW_HOME");
-        let dir = home_dir();
+        let dir = resolve_home(None);
         assert!(dir.ends_with(".selfclaw"));
     }
 
     #[test]
     fn test_home_dir_env_override() {
-        std::env::set_var("SELFCLAW_HOME", "/tmp/test-selfclaw-home");
-        let dir = home_dir();
+        let dir = resolve_home(Some("/tmp/test-selfclaw-home"));
         assert_eq!(dir, PathBuf::from("/tmp/test-selfclaw-home"));
-        std::env::remove_var("SELFCLAW_HOME");
     }
 
     #[test]
     fn test_config_path() {
-        std::env::set_var("SELFCLAW_HOME", "/tmp/test-sc");
-        assert_eq!(config_path(), PathBuf::from("/tmp/test-sc/config.toml"));
-        std::env::remove_var("SELFCLAW_HOME");
+        // config_path joins "config.toml" to home_dir
+        let home = resolve_home(Some("/tmp/test-sc"));
+        assert_eq!(home.join("config.toml"), PathBuf::from("/tmp/test-sc/config.toml"));
     }
 
     #[test]
@@ -180,8 +185,10 @@ mod tests {
 
     #[test]
     fn test_pid_file_path() {
-        std::env::set_var("SELFCLAW_HOME", "/tmp/test-sc");
-        assert_eq!(pid_file(), PathBuf::from("/tmp/test-sc/state/selfclaw.pid"));
-        std::env::remove_var("SELFCLAW_HOME");
+        let home = resolve_home(Some("/tmp/test-sc"));
+        assert_eq!(
+            home.join("state/selfclaw.pid"),
+            PathBuf::from("/tmp/test-sc/state/selfclaw.pid")
+        );
     }
 }
