@@ -1,12 +1,6 @@
 # SelfClaw
 
-<p align="center">
-  <img src="docs/images/selfclaw-character.png" alt="SelfClaw" width="240" />
-</p>
-
-<p align="center">
-  <em>"나의 질문?" — A fully autonomous AI agent that discovers its own reason for existence.</em>
-</p>
+![SelfClaw](docs/images/selfclaw-character.png)
 
 ---
 
