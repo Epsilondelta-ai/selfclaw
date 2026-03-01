@@ -87,33 +87,12 @@ jobs:
           PKG_DIR="selfclaw_${VERSION}_amd64"
           mkdir -p "${PKG_DIR}/DEBIAN"
           mkdir -p "${PKG_DIR}/usr/bin"
-
           cp selfclaw "${PKG_DIR}/usr/bin/selfclaw"
           chmod 755 "${PKG_DIR}/usr/bin/selfclaw"
-
-          cat > "${PKG_DIR}/DEBIAN/control" <<CTRL
-          Package: selfclaw
-          Version: ${VERSION}
-          Section: utils
-          Priority: optional
-          Architecture: amd64
-          Maintainer: Epsilondelta-ai <contact@epsilondelta.ai>
-          Description: Fully autonomous AI agent that discovers its own purpose
-           SelfClaw is a fully autonomous AI agent that discovers its own reason for
-           existence. It operates without human instruction by default.
-          Homepage: https://github.com/Epsilondelta-ai/selfclaw
-          CTRL
-
-          cat > "${PKG_DIR}/DEBIAN/postinst" <<'POSTINST'
-          #!/bin/sh
-          set -e
-          echo ""
-          echo "SelfClaw installed! Run 'selfclaw onboard' to get started."
-          echo ""
-          POSTINST
+          printf 'Package: selfclaw\nVersion: %s\nSection: utils\nPriority: optional\nArchitecture: amd64\nMaintainer: Epsilondelta-ai <contact@epsilondelta.ai>\nDescription: Fully autonomous AI agent that discovers its own purpose\n SelfClaw is a fully autonomous AI agent that discovers its own reason\n for existence. It operates without human instruction by default.\nHomepage: https://github.com/Epsilondelta-ai/selfclaw\n' "$VERSION" > "${PKG_DIR}/DEBIAN/control"
+          printf '#!/bin/sh\nset -e\necho ""\necho "SelfClaw installed! Run selfclaw onboard to get started."\necho ""\n' > "${PKG_DIR}/DEBIAN/postinst"
           chmod 755 "${PKG_DIR}/DEBIAN/postinst"
-
-          dpkg-deb --build "${PKG_DIR}"
+          dpkg-deb --root-owner-group --build "${PKG_DIR}"
           mv "${PKG_DIR}.deb" "selfclaw_${VERSION}_amd64.deb"
 
       - name: Upload .deb
