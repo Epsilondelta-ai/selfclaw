@@ -123,12 +123,10 @@ const BOOTSTRAP_FILES: &[BootstrapFile] = &[
 pub fn execute(force: bool) -> anyhow::Result<()> {
     let home = home::home_dir();
 
-    if home.exists() && !force {
-        if home::is_initialized() {
-            println!("SelfClaw is already initialized at {}", home.display());
-            println!("Use `selfclaw init --force` to reinitialize.");
-            return Ok(());
-        }
+    if home.exists() && !force && home::is_initialized() {
+        println!("SelfClaw is already initialized at {}", home.display());
+        println!("Use `selfclaw init --force` to reinitialize.");
+        return Ok(());
     }
 
     println!("Initializing SelfClaw at {}...\n", home.display());

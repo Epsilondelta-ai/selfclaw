@@ -150,6 +150,11 @@ install_via_apt() {
             | grep '"tag_name"' \
             | head -1 \
             | sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/')
+        if [[ -z "$VERSION" ]]; then
+            info "Could not determine latest version. Falling back to binary download..."
+            main_binary_install
+            return
+        fi
     fi
 
     local deb_version="${VERSION#v}"
@@ -181,10 +186,17 @@ install_via_yum() {
             | grep '"tag_name"' \
             | head -1 \
             | sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/')
+        if [[ -z "$VERSION" ]]; then
+            info "Could not determine latest version. Falling back to binary download..."
+            main_binary_install
+            return
+        fi
     fi
 
     local rpm_version="${VERSION#v}"
-    local rpm_url="https://github.com/${REPO}/releases/download/${VERSION}/selfclaw-${rpm_version}-1.x86_64.rpm"
+    local arch
+    arch="$(uname -m)"
+    local rpm_url="https://github.com/${REPO}/releases/download/${VERSION}/selfclaw-${rpm_version}-1.${arch}.rpm"
     local tmp_dir
     tmp_dir="$(mktemp -d)"
     trap 'rm -rf "$tmp_dir"' EXIT

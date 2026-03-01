@@ -57,6 +57,15 @@ pub fn start() -> anyhow::Result<()> {
     let pid = child.id();
     fs::write(home::pid_file(), pid.to_string())?;
 
+    // Brief delay to check if process started successfully.
+    std::thread::sleep(std::time::Duration::from_millis(500));
+    if !is_running() {
+        // Process exited immediately — clean up stale PID file.
+        let _ = fs::remove_file(home::pid_file());
+        eprintln!("  Daemon failed to start. Check logs: {}", log_file.display());
+        return Err(anyhow::anyhow!("daemon exited immediately after spawn"));
+    }
+
     println!("  PID:     {}", pid);
     println!("\nSelfClaw daemon started.");
     println!("  View logs:  tail -f {}", log_file.display());
@@ -191,8 +200,9 @@ pub fn uninstall() -> anyhow::Result<()> {
 // ── macOS: launchd ──────────────────────────────────────────────────
 
 fn launchd_plist_path() -> std::path::PathBuf {
+    // Use the system home dir (not SELFCLAW_HOME) for service config paths.
     dirs::home_dir()
-        .unwrap_or_default()
+        .unwrap_or_else(|| home::home_dir().parent().unwrap_or(Path::new("/tmp")).to_path_buf())
         .join("Library/LaunchAgents/ai.selfclaw.agent.plist")
 }
 
@@ -305,7 +315,7 @@ fn uninstall_launchd() -> anyhow::Result<()> {
 
 fn systemd_unit_path() -> std::path::PathBuf {
     dirs::home_dir()
-        .unwrap_or_default()
+        .unwrap_or_else(|| home::home_dir().parent().unwrap_or(Path::new("/tmp")).to_path_buf())
         .join(".config/systemd/user/selfclaw.service")
 }
 

@@ -17,12 +17,8 @@ pub fn execute(memory_dir: &str, path: &str) -> anyhow::Result<()> {
     let store = FileMemoryStore::new(Path::new(memory_dir));
 
     // If path looks like a directory (no extension, or ends with /), list files
-    if path.ends_with('/') || (!path.contains('.') && store.exists(path) == false) {
-        let dir = if path.ends_with('/') {
-            &path[..path.len() - 1]
-        } else {
-            path
-        };
+    if path.ends_with('/') || (!path.contains('.') && !store.exists(path)) {
+        let dir = path.strip_suffix('/').unwrap_or(path);
 
         match store.list(dir) {
             Ok(files) => {

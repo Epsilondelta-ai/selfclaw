@@ -6,7 +6,7 @@ pub fn execute() {
     println!("=======================");
     println!();
     println!(
-        "{:<14} {:<42} {:<22} {}",
+        "{:<14} {:<42} {:<22} {:<30}",
         "PROVIDER", "DEFAULT MODEL", "ENV VAR", "DEFAULT BASE URL"
     );
     println!("{}", "-".repeat(110));

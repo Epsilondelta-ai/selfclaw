@@ -20,7 +20,7 @@ impl FileReadTool {
             if resolved.exists() {
                 let canon = resolved
                     .canonicalize()
-                    .map_err(|e| ToolError::Io(e))?;
+                    .map_err(ToolError::Io)?;
                 if !canon.starts_with(&canon_root) {
                     return Err(ToolError::Safety(format!(
                         "path escapes root: {}",
