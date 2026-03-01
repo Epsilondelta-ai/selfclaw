@@ -82,18 +82,18 @@ impl ProviderKind {
     /// The default model name for this provider.
     pub fn default_model(&self) -> &'static str {
         match self {
-            Self::Anthropic => "claude-sonnet-4-20250514",
-            Self::OpenAI => "gpt-4o",
-            Self::Google => "gemini-2.0-flash",
-            Self::Ollama => "llama3.1",
-            Self::OpenRouter => "anthropic/claude-sonnet-4-20250514",
+            Self::Anthropic => "claude-sonnet-4-6-20250217",
+            Self::OpenAI => "gpt-5.2",
+            Self::Google => "gemini-2.5-flash",
+            Self::Ollama => "llama4",
+            Self::OpenRouter => "anthropic/claude-sonnet-4-6-20250217",
             Self::Groq => "llama-3.3-70b-versatile",
-            Self::XAI => "grok-3",
+            Self::XAI => "grok-4",
             Self::Mistral => "mistral-large-latest",
             Self::DeepSeek => "deepseek-chat",
-            Self::Together => "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
-            Self::Moonshot => "moonshot-v1-8k",
-            Self::Bedrock => "anthropic.claude-sonnet-4-20250514-v1:0",
+            Self::Together => "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+            Self::Moonshot => "kimi-k2.5",
+            Self::Bedrock => "anthropic.claude-sonnet-4-6-20250217-v1:0",
             Self::Custom => "default",
         }
     }
@@ -1351,13 +1351,13 @@ mod tests {
     fn test_provider_kind_default_model() {
         assert_eq!(
             ProviderKind::Anthropic.default_model(),
-            "claude-sonnet-4-20250514"
+            "claude-sonnet-4-6-20250217"
         );
-        assert_eq!(ProviderKind::OpenAI.default_model(), "gpt-4o");
-        assert_eq!(ProviderKind::Google.default_model(), "gemini-2.0-flash");
-        assert_eq!(ProviderKind::Ollama.default_model(), "llama3.1");
+        assert_eq!(ProviderKind::OpenAI.default_model(), "gpt-5.2");
+        assert_eq!(ProviderKind::Google.default_model(), "gemini-2.5-flash");
+        assert_eq!(ProviderKind::Ollama.default_model(), "llama4");
         assert_eq!(ProviderKind::Groq.default_model(), "llama-3.3-70b-versatile");
-        assert_eq!(ProviderKind::XAI.default_model(), "grok-3");
+        assert_eq!(ProviderKind::XAI.default_model(), "grok-4");
         assert_eq!(ProviderKind::Mistral.default_model(), "mistral-large-latest");
         assert_eq!(ProviderKind::DeepSeek.default_model(), "deepseek-chat");
     }
@@ -1395,9 +1395,9 @@ mod tests {
     #[test]
     fn test_anthropic_build_request() {
         let p = AnthropicProvider::new(None);
-        let req = p.build_request("claude-sonnet-4-20250514", 4096, 0.7, "Hello", Some("Be helpful"));
+        let req = p.build_request("claude-sonnet-4-6-20250217", 4096, 0.7, "Hello", Some("Be helpful"));
 
-        assert_eq!(req["model"], "claude-sonnet-4-20250514");
+        assert_eq!(req["model"], "claude-sonnet-4-6-20250217");
         assert_eq!(req["max_tokens"], 4096);
         assert_eq!(req["messages"][0]["role"], "user");
         assert_eq!(req["messages"][0]["content"], "Hello");
@@ -1407,7 +1407,7 @@ mod tests {
     #[test]
     fn test_anthropic_build_request_no_system() {
         let p = AnthropicProvider::new(None);
-        let req = p.build_request("claude-sonnet-4-20250514", 4096, 0.7, "Hello", None);
+        let req = p.build_request("claude-sonnet-4-6-20250217", 4096, 0.7, "Hello", None);
         assert!(req.get("system").is_none());
     }
 
@@ -1421,7 +1421,7 @@ mod tests {
             "content": [
                 { "type": "text", "text": "Hello! How can I help?" }
             ],
-            "model": "claude-sonnet-4-20250514",
+            "model": "claude-sonnet-4-6-20250217",
             "stop_reason": "end_turn"
         });
         let text = p.parse_response(&resp).unwrap();
@@ -1599,13 +1599,13 @@ mod tests {
     fn test_openrouter_build_request() {
         let p = OpenRouterProvider::new(None);
         let req = p.build_request(
-            "anthropic/claude-sonnet-4-20250514",
+            "anthropic/claude-sonnet-4-6-20250217",
             4096,
             0.7,
             "Hello",
             Some("System"),
         );
-        assert_eq!(req["model"], "anthropic/claude-sonnet-4-20250514");
+        assert_eq!(req["model"], "anthropic/claude-sonnet-4-6-20250217");
     }
 
     #[test]
@@ -1750,7 +1750,7 @@ mod tests {
     fn test_create_provider_anthropic() {
         let config = selfclaw_config::LlmConfig {
             provider: "anthropic".to_string(),
-            model: "claude-sonnet-4-20250514".to_string(),
+            model: "claude-sonnet-4-6-20250217".to_string(),
             max_tokens: 4096,
             temperature: 0.7,
             api_key: None,
@@ -1811,9 +1811,9 @@ mod tests {
 
     #[test]
     fn test_llm_tool_build_request_default() {
-        let tool = LlmCallTool::new("claude-sonnet-4-20250514".to_string(), 4096, 0.7);
+        let tool = LlmCallTool::new("claude-sonnet-4-6-20250217".to_string(), 4096, 0.7);
         let req = tool.build_request("What is 2+2?", None);
-        assert_eq!(req["model"], "claude-sonnet-4-20250514");
+        assert_eq!(req["model"], "claude-sonnet-4-6-20250217");
         assert_eq!(req["messages"][0]["content"], "What is 2+2?");
     }
 
@@ -1930,7 +1930,7 @@ mod tests {
     fn test_llm_tool_with_explicit_api_key() {
         let config = selfclaw_config::LlmConfig {
             provider: "anthropic".to_string(),
-            model: "claude-sonnet-4-20250514".to_string(),
+            model: "claude-sonnet-4-6-20250217".to_string(),
             max_tokens: 4096,
             temperature: 0.7,
             api_key: Some("explicit-key-from-config".to_string()),
@@ -2017,7 +2017,7 @@ mod tests {
     fn test_bedrock_build_request() {
         let p = BedrockProvider::new(None);
         let req = p.build_request(
-            "anthropic.claude-sonnet-4-20250514-v1:0",
+            "anthropic.claude-sonnet-4-6-20250217-v1:0",
             4096,
             0.7,
             "Hello",
@@ -2140,7 +2140,7 @@ mod tests {
     fn test_create_provider_bedrock() {
         let config = selfclaw_config::LlmConfig {
             provider: "bedrock".to_string(),
-            model: "anthropic.claude-sonnet-4-20250514-v1:0".to_string(),
+            model: "anthropic.claude-sonnet-4-6-20250217-v1:0".to_string(),
             max_tokens: 4096,
             temperature: 0.7,
             api_key: None,

@@ -228,7 +228,7 @@ max_actions_per_cycle = 5            # 사이클당 최대 행동 수, 기본: 5
 # ── LLM 설정 ─────────────────────────────────────────────
 [llm]
 provider = "anthropic"               # LLM 제공자 (`selfclaw providers` 참조), 기본: "anthropic"
-model = "claude-sonnet-4-20250514"   # 모델명, 기본: "claude-sonnet-4-20250514"
+model = "claude-sonnet-4-6-20250217"   # 모델명, 기본: "claude-sonnet-4-6-20250217"
 max_tokens = 4096                    # 최대 출력 토큰, 기본: 4096
 temperature = 0.7                    # 샘플링 온도 (0.0~2.0), 기본: 0.7
 # api_key = "sk-..."                # 선택: 명시적 API 키 (환경 변수 대신 사용)
@@ -301,18 +301,18 @@ SelfClaw는 12개의 내장 LLM 프로바이더와 OpenAI 호환 엔드포인트
 
 | 프로바이더 | 설정 이름 | 기본 모델 | 환경 변수 | API 기본 URL |
 |-----------|----------|----------|----------|-------------|
-| Anthropic | `anthropic` | claude-sonnet-4-20250514 | `ANTHROPIC_API_KEY` | api.anthropic.com |
-| OpenAI | `openai` | gpt-4o | `OPENAI_API_KEY` | api.openai.com |
-| Google Gemini | `google` | gemini-2.0-flash | `GOOGLE_API_KEY` | generativelanguage.googleapis.com |
-| Ollama (로컬) | `ollama` | llama3.1 | — (키 불필요) | localhost:11434 |
-| OpenRouter | `openrouter` | anthropic/claude-sonnet-4-20250514 | `OPENROUTER_API_KEY` | openrouter.ai/api |
+| Anthropic | `anthropic` | claude-sonnet-4-6-20250217 | `ANTHROPIC_API_KEY` | api.anthropic.com |
+| OpenAI | `openai` | gpt-5.2 | `OPENAI_API_KEY` | api.openai.com |
+| Google Gemini | `google` | gemini-2.5-flash | `GOOGLE_API_KEY` | generativelanguage.googleapis.com |
+| Ollama (로컬) | `ollama` | llama4 | — (키 불필요) | localhost:11434 |
+| OpenRouter | `openrouter` | anthropic/claude-sonnet-4-6-20250217 | `OPENROUTER_API_KEY` | openrouter.ai/api |
 | Groq | `groq` | llama-3.3-70b-versatile | `GROQ_API_KEY` | api.groq.com/openai |
-| xAI (Grok) | `xai` | grok-3 | `XAI_API_KEY` | api.x.ai |
+| xAI (Grok) | `xai` | grok-4 | `XAI_API_KEY` | api.x.ai |
 | Mistral | `mistral` | mistral-large-latest | `MISTRAL_API_KEY` | api.mistral.ai |
 | DeepSeek | `deepseek` | deepseek-chat | `DEEPSEEK_API_KEY` | api.deepseek.com |
-| Together AI | `together` | Meta-Llama-3.1-70B-Instruct-Turbo | `TOGETHER_API_KEY` | api.together.xyz |
-| Moonshot (Kimi) | `moonshot` | moonshot-v1-8k | `MOONSHOT_API_KEY` | api.moonshot.cn |
-| Amazon Bedrock | `bedrock` | anthropic.claude-sonnet-4-20250514-v1:0 | `AWS_ACCESS_KEY_ID` | bedrock-runtime.us-east-1.amazonaws.com |
+| Together AI | `together` | meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8 | `TOGETHER_API_KEY` | api.together.xyz |
+| Moonshot (Kimi) | `moonshot` | kimi-k2.5 | `MOONSHOT_API_KEY` | api.moonshot.cn |
+| Amazon Bedrock | `bedrock` | anthropic.claude-sonnet-4-6-20250217-v1:0 | `AWS_ACCESS_KEY_ID` | bedrock-runtime.us-east-1.amazonaws.com |
 
 ### 프로바이더 별칭
 
@@ -334,14 +334,14 @@ SelfClaw는 12개의 내장 LLM 프로바이더와 OpenAI 호환 엔드포인트
 ```toml
 [llm]
 provider = "anthropic"
-model = "claude-sonnet-4-20250514"
+model = "claude-sonnet-4-6-20250217"
 ```
 
 **OpenAI:**
 ```toml
 [llm]
 provider = "openai"
-model = "gpt-4o"
+model = "gpt-5.2"
 # OPENAI_API_KEY 환경 변수 설정, 또는:
 # api_key = "sk-..."
 ```
@@ -350,7 +350,7 @@ model = "gpt-4o"
 ```toml
 [llm]
 provider = "ollama"
-model = "llama3.1"
+model = "llama4"
 # base_url = "http://192.168.1.100:11434"  # 원격 Ollama 인스턴스
 ```
 
@@ -358,7 +358,7 @@ model = "llama3.1"
 ```toml
 [llm]
 provider = "openrouter"
-model = "anthropic/claude-sonnet-4-20250514"
+model = "anthropic/claude-sonnet-4-6-20250217"
 ```
 
 **커스텀 OpenAI 호환 엔드포인트:**

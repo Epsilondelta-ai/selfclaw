@@ -115,7 +115,7 @@ max_actions_per_cycle = 5
 
 [llm]
 provider = "anthropic"
-model = "claude-sonnet-4-20250514"
+model = "claude-sonnet-4-6-20250217"
 max_tokens = 4096
 temperature = 0.7
 

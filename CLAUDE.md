@@ -173,7 +173,7 @@ SelfClaw is autonomous but not unconstrained:
 ### Language & Frameworks
 - **Core agent**: Rust (for performance, reliability, and safety)
 - **Web UI (optional)**: Next.js + TypeScript + React
-- **LLM backend**: Multi-provider (Anthropic, OpenAI, Google Gemini, Ollama, OpenRouter, Groq, xAI, Mistral, DeepSeek, or any OpenAI-compatible endpoint). Default: Anthropic `claude-sonnet-4-20250514`.
+- **LLM backend**: Multi-provider (Anthropic, OpenAI, Google Gemini, Ollama, OpenRouter, Groq, xAI, Mistral, DeepSeek, or any OpenAI-compatible endpoint). Default: Anthropic `claude-sonnet-4-6-20250217`.
 
 ### Project Structure (Rust)
 ```
@@ -238,7 +238,7 @@ max_actions_per_cycle = 5
 
 [llm]
 provider = "anthropic"                     # anthropic | openai | google | ollama | openrouter | groq | xai | mistral | deepseek | together | moonshot | bedrock | <custom>
-model = "claude-sonnet-4-20250514"
+model = "claude-sonnet-4-6-20250217"
 max_tokens = 4096
 temperature = 0.7
 # api_key = "sk-..."                       # Optional: overrides env var (e.g. ANTHROPIC_API_KEY, OPENAI_API_KEY)
