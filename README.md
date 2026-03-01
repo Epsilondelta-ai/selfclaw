@@ -164,6 +164,7 @@ Agent:
 Daemon:
   daemon start     Start as background daemon
   daemon stop      Stop the daemon
+  daemon restart   Restart the daemon (stop + start)
   daemon status    Check daemon status
   daemon install   Install as system service (launchd/systemd)
   daemon uninstall Remove system service

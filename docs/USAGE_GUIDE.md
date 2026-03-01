@@ -203,24 +203,27 @@ selfclaw doctor
 
 ### The Onboarding Wizard
 
-The onboarding wizard (`selfclaw onboard`) guides you through first-time setup:
+The onboarding wizard (`selfclaw onboard`) offers two modes:
+
+**QuickStart (recommended)** — Minimal prompts with sensible defaults:
+- Auto-detects API keys from environment variables
+- Defaults to Anthropic (Claude) if no key found
+- Skips channel configuration
+- 4 steps total
+
+**Advanced** — Full control over every setting:
+- Manual LLM provider selection with model and API key
+- Channel configuration (Discord, Telegram, Slack tokens)
+- 6 steps total with health check
 
 ```
-Step 1/5: Initialize directory structure
-  Creates ~/.selfclaw/ with memory, skills, and config
-
-Step 2/5: LLM Provider Configuration
-  Select your LLM provider (Anthropic, OpenAI, Ollama, etc.)
-  Enter model name and API key
-
-Step 3/5: Write configuration
-  Saves config.toml to ~/.selfclaw/
-
-Step 4/5: Background Service
-  Optionally install SelfClaw as a daemon (launchd/systemd)
-
-Step 5/5: Health Check
-  Verifies all components are properly configured
+QuickStart:                      Advanced:
+Step 1/4: Init directory         Step 1/6: Init directory
+Step 2/4: LLM (auto-detect)     Step 2/6: LLM provider
+Step 3/4: Write config           Step 3/6: Channels
+Step 4/4: Daemon                 Step 4/6: Write config
+                                 Step 5/6: Daemon
+                                 Step 6/6: Health check
 ```
 
 ### Onboarding Options
@@ -408,10 +411,10 @@ Creates:
 
 ### `selfclaw onboard` — Interactive Setup Wizard
 
-Guided first-time setup: LLM provider, API key, daemon installation, health check.
+Guided first-time setup with QuickStart (auto-detect, minimal prompts) or Advanced mode (full control, channel config).
 
 ```bash
-# Full interactive onboarding
+# Full interactive onboarding (choose QuickStart or Advanced)
 selfclaw onboard
 
 # Auto-install daemon without prompting
@@ -421,13 +424,8 @@ selfclaw onboard --install-daemon
 selfclaw onboard --reset
 ```
 
-**Wizard Steps:**
-1. Initialize directory structure
-2. Select LLM provider and model
-3. Configure API key
-4. Write configuration file
-5. (Optional) Install background daemon
-6. Health check
+**QuickStart** (4 steps): init, LLM auto-detect, write config, daemon.
+**Advanced** (6 steps): init, LLM provider, channels (Discord/Telegram/Slack), write config, daemon, health check.
 
 ### `selfclaw daemon` — Background Service
 
@@ -439,6 +437,9 @@ selfclaw daemon start
 
 # Stop the daemon
 selfclaw daemon stop
+
+# Restart the daemon (stop + start)
+selfclaw daemon restart
 
 # Check status
 selfclaw daemon status

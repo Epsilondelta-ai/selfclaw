@@ -80,6 +80,8 @@ pub enum DaemonAction {
     Start,
     /// Stop a running daemon
     Stop,
+    /// Restart the daemon (stop + start)
+    Restart,
     /// Check if the daemon is running
     Status,
     /// Install as a system service (launchd on macOS, systemd on Linux)
@@ -106,12 +108,19 @@ async fn main() -> anyhow::Result<()> {
             return match action {
                 DaemonAction::Start => commands::daemon::start(),
                 DaemonAction::Stop => commands::daemon::stop(),
+                DaemonAction::Restart => commands::daemon::restart(),
                 DaemonAction::Status => commands::daemon::status(),
                 DaemonAction::Install => commands::daemon::install(),
                 DaemonAction::Uninstall => commands::daemon::uninstall(),
             };
         }
-        Commands::Doctor => return commands::doctor::execute(),
+        Commands::Doctor => {
+            let all_passed = commands::doctor::execute()?;
+            if !all_passed {
+                std::process::exit(1);
+            }
+            return Ok(());
+        }
         Commands::Providers => {
             commands::providers::execute();
             return Ok(());
@@ -294,6 +303,15 @@ mod tests {
         match cli.command {
             Commands::Daemon { action } => assert!(matches!(action, DaemonAction::Uninstall)),
             _ => panic!("expected Daemon Uninstall"),
+        }
+    }
+
+    #[test]
+    fn test_cli_parses_daemon_restart() {
+        let cli = Cli::parse_from(["selfclaw", "daemon", "restart"]);
+        match cli.command {
+            Commands::Daemon { action } => assert!(matches!(action, DaemonAction::Restart)),
+            _ => panic!("expected Daemon Restart"),
         }
     }
 

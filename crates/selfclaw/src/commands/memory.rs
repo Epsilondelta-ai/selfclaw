@@ -4,6 +4,16 @@ use selfclaw_memory::store::{FileMemoryStore, MemoryStore};
 
 /// View a memory file.
 pub fn execute(memory_dir: &str, path: &str) -> anyhow::Result<()> {
+    // Sanitize path to prevent directory traversal.
+    if path.contains("..") {
+        eprintln!("  Error: path must not contain '..'");
+        std::process::exit(1);
+    }
+    if Path::new(path).is_absolute() {
+        eprintln!("  Error: path must be relative to the memory directory");
+        std::process::exit(1);
+    }
+
     let store = FileMemoryStore::new(Path::new(memory_dir));
 
     // If path looks like a directory (no extension, or ends with /), list files

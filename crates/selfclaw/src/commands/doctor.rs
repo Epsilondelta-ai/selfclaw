@@ -18,7 +18,8 @@ struct Check {
     detail: String,
 }
 
-pub fn execute() -> anyhow::Result<()> {
+/// Run health checks. Returns `true` if all checks passed.
+pub fn execute() -> anyhow::Result<bool> {
     let mut checks: Vec<Check> = Vec::new();
 
     // 1. Home directory
@@ -178,8 +179,6 @@ pub fn execute() -> anyhow::Result<()> {
             all_passed = false;
         }
     }
-    let _ = all_passed; // suppress unused warning; used for future exit code
-
     println!();
     let passed = checks.iter().filter(|c| c.passed).count();
     let total = checks.len();
@@ -190,7 +189,7 @@ pub fn execute() -> anyhow::Result<()> {
         println!("  Run `selfclaw onboard` for guided setup.");
     }
 
-    Ok(())
+    Ok(all_passed)
 }
 
 fn check_api_key(config_path: &Path) -> (bool, String) {
@@ -264,6 +263,18 @@ mod tests {
         super::super::init::execute(false).unwrap();
         let result = execute();
         assert!(result.is_ok());
+        // After init, most checks should pass (except maybe daemon and API key).
+        let _all_passed = result.unwrap();
+        std::env::remove_var("SELFCLAW_HOME");
+    }
+
+    #[test]
+    fn test_doctor_returns_false_when_uninitialized() {
+        let tmp = TempDir::new().unwrap();
+        std::env::set_var("SELFCLAW_HOME", tmp.path().join(".selfclaw-empty"));
+        let result = execute();
+        assert!(result.is_ok());
+        assert!(!result.unwrap()); // Should fail: nothing is set up
         std::env::remove_var("SELFCLAW_HOME");
     }
 

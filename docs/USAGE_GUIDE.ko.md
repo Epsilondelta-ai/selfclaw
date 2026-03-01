@@ -201,24 +201,27 @@ selfclaw doctor
 
 ### 온보딩 마법사
 
-온보딩 마법사(`selfclaw onboard`)가 초기 설정을 안내합니다:
+온보딩 마법사(`selfclaw onboard`)는 두 가지 모드를 제공합니다:
+
+**QuickStart (권장)** — 최소한의 프롬프트와 합리적인 기본값:
+- 환경 변수에서 API 키 자동 감지
+- 키를 찾지 못하면 Anthropic (Claude) 기본 설정
+- 채널 설정 건너뛰기
+- 총 4단계
+
+**Advanced** — 모든 설정을 직접 제어:
+- LLM 프로바이더 수동 선택, 모델명, API 키 입력
+- 채널 설정 (Discord, Telegram, Slack 토큰)
+- 총 6단계, 상태 확인 포함
 
 ```
-Step 1/5: 디렉토리 구조 초기화
-  ~/.selfclaw/에 메모리, 스킬, 설정 디렉토리 생성
-
-Step 2/5: LLM 프로바이더 설정
-  LLM 프로바이더 선택 (Anthropic, OpenAI, Ollama 등)
-  모델명과 API 키 입력
-
-Step 3/5: 설정 파일 저장
-  ~/.selfclaw/config.toml에 저장
-
-Step 4/5: 백그라운드 서비스
-  데몬(launchd/systemd)으로 설치 (선택)
-
-Step 5/5: 상태 확인
-  모든 구성요소가 올바르게 설정되었는지 검증
+QuickStart:                      Advanced:
+Step 1/4: 디렉토리 초기화        Step 1/6: 디렉토리 초기화
+Step 2/4: LLM (자동 감지)        Step 2/6: LLM 프로바이더
+Step 3/4: 설정 저장              Step 3/6: 채널 설정
+Step 4/4: 데몬                   Step 4/6: 설정 저장
+                                 Step 5/6: 데몬
+                                 Step 6/6: 상태 확인
 ```
 
 ### 온보딩 옵션
@@ -381,10 +384,10 @@ selfclaw init --force
 
 ### `selfclaw onboard` — 대화형 설정 마법사
 
-초기 설정 안내: LLM 프로바이더, API 키, 데몬 설치, 상태 확인.
+QuickStart (자동 감지, 최소 프롬프트) 또는 Advanced 모드 (전체 제어, 채널 설정)로 초기 설정을 안내합니다.
 
 ```bash
-# 대화형 온보딩
+# 대화형 온보딩 (QuickStart 또는 Advanced 선택)
 selfclaw onboard
 
 # 데몬 자동 설치
@@ -393,6 +396,9 @@ selfclaw onboard --install-daemon
 # 설정 재초기화
 selfclaw onboard --reset
 ```
+
+**QuickStart** (4단계): 초기화, LLM 자동 감지, 설정 저장, 데몬.
+**Advanced** (6단계): 초기화, LLM 프로바이더, 채널 (Discord/Telegram/Slack), 설정 저장, 데몬, 상태 확인.
 
 ### `selfclaw daemon` — 백그라운드 서비스
 
@@ -404,6 +410,9 @@ selfclaw daemon start
 
 # 데몬 정지
 selfclaw daemon stop
+
+# 데몬 재시작 (정지 + 시작)
+selfclaw daemon restart
 
 # 상태 확인
 selfclaw daemon status

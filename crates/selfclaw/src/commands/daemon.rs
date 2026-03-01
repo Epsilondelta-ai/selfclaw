@@ -103,6 +103,15 @@ pub fn stop() -> anyhow::Result<()> {
     Ok(())
 }
 
+// ── Restart ────────────────────────────────────────────────────────
+
+pub fn restart() -> anyhow::Result<()> {
+    if is_running() {
+        stop()?;
+    }
+    start()
+}
+
 // ── Status ──────────────────────────────────────────────────────────
 
 pub fn status() -> anyhow::Result<()> {
@@ -202,6 +211,24 @@ fn install_launchd(
         return Ok(());
     }
 
+    // Collect API key env vars to forward into the daemon environment.
+    let env_vars_to_forward = [
+        "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GOOGLE_API_KEY",
+        "OPENROUTER_API_KEY", "GROQ_API_KEY", "XAI_API_KEY",
+        "MISTRAL_API_KEY", "DEEPSEEK_API_KEY", "TOGETHER_API_KEY",
+        "MOONSHOT_API_KEY", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY",
+        "SELFCLAW_HOME",
+    ];
+    let mut extra_env = String::new();
+    for var in &env_vars_to_forward {
+        if let Ok(val) = std::env::var(var) {
+            extra_env.push_str(&format!(
+                "        <key>{}</key>\n        <string>{}</string>\n",
+                var, val
+            ));
+        }
+    }
+
     let plist = format!(
         r#"<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -230,13 +257,14 @@ fn install_launchd(
     <dict>
         <key>PATH</key>
         <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
-    </dict>
+{extra_env}    </dict>
 </dict>
 </plist>"#,
         exe = exe.display(),
         config = config.display(),
         memory = memory.display(),
         log = log.display(),
+        extra_env = extra_env,
     );
 
     if let Some(parent) = plist_path.parent() {
@@ -296,6 +324,21 @@ fn install_systemd(
         return Ok(());
     }
 
+    // Collect API key env vars to forward into the service environment.
+    let env_vars_to_forward = [
+        "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GOOGLE_API_KEY",
+        "OPENROUTER_API_KEY", "GROQ_API_KEY", "XAI_API_KEY",
+        "MISTRAL_API_KEY", "DEEPSEEK_API_KEY", "TOGETHER_API_KEY",
+        "MOONSHOT_API_KEY", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY",
+        "SELFCLAW_HOME",
+    ];
+    let mut env_lines = String::from("Environment=PATH=/usr/local/bin:/usr/bin:/bin\n");
+    for var in &env_vars_to_forward {
+        if let Ok(val) = std::env::var(var) {
+            env_lines.push_str(&format!("Environment={}={}\n", var, val));
+        }
+    }
+
     let unit = format!(
         r#"[Unit]
 Description=SelfClaw Autonomous AI Agent
@@ -306,14 +349,14 @@ Type=simple
 ExecStart={exe} -c {config} -m {memory} run
 Restart=on-failure
 RestartSec=10
-Environment=PATH=/usr/local/bin:/usr/bin:/bin
-
+{env_lines}
 [Install]
 WantedBy=default.target
 "#,
         exe = exe.display(),
         config = config.display(),
         memory = memory.display(),
+        env_lines = env_lines,
     );
 
     if let Some(parent) = unit_path.parent() {
