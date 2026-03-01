@@ -62,45 +62,85 @@ SelfClaw communicates with humans through a unified Gateway that routes messages
 
 Each channel runs independently. The Gateway aggregates inbound messages and routes outbound messages to the appropriate channel.
 
-## Build
+## Installation
 
-Requires Rust 1.75+ and Cargo.
+### Quick Install (recommended)
 
 ```bash
-cargo build --release
+curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/selfclaw/main/scripts/install.sh | bash
 ```
 
-## Run
+This will download the binary (or build from source), initialize `~/.selfclaw/`, and launch the onboarding wizard.
+
+Options:
+- `--no-onboard` — Skip the onboarding wizard
+- `--version v0.1.0` — Install a specific version
+
+### From Source
 
 ```bash
-# Start the autonomous agent loop
+git clone https://github.com/Epsilondelta-ai/selfclaw.git
+cd selfclaw
+cargo build --release
+cp target/release/selfclaw /usr/local/bin/
+selfclaw init
+selfclaw onboard
+```
+
+### From GitHub Releases
+
+Download pre-built binaries from [Releases](https://github.com/Epsilondelta-ai/selfclaw/releases):
+
+| Platform | Architecture | Download |
+|----------|-------------|----------|
+| macOS | Apple Silicon (M1+) | `selfclaw-*-macos-aarch64.tar.gz` |
+| macOS | Intel | `selfclaw-*-macos-x86_64.tar.gz` |
+| Linux | x86_64 | `selfclaw-*-linux-x86_64.tar.gz` |
+| Linux | ARM64 | `selfclaw-*-linux-aarch64.tar.gz` |
+
+## Getting Started
+
+```bash
+# 1. Initialize directory structure (~/.selfclaw/)
+selfclaw init
+
+# 2. Interactive setup wizard (LLM provider, API key, daemon)
+selfclaw onboard
+
+# 3. Start the agent (foreground)
 selfclaw run
 
-# Interactive chat mode
-selfclaw chat
-
-# Show agent status and purpose hypothesis
-selfclaw status
-
-# View a memory file
-selfclaw memory identity/purpose_journal.md
+# Or start as a background daemon
+selfclaw daemon start
 ```
 
-### CLI Options
+### CLI Commands
 
 ```
 selfclaw [OPTIONS] <COMMAND>
 
-Options:
-  -c, --config <CONFIG>        Path to config file [default: selfclaw.toml]
-  -m, --memory-dir <DIR>       Path to memory directory [default: ./memory]
+Setup:
+  init         Initialize ~/.selfclaw/ directory structure
+  onboard      Interactive onboarding wizard
+  doctor       Diagnose installation health
 
-Commands:
-  run        Start the autonomous agent loop
-  chat       Interactive chat mode
-  status     Show current agent state
-  memory     View a memory file
-  providers  List all supported LLM providers
+Agent:
+  run          Start the autonomous agent loop
+  chat         Interactive chat mode
+  status       Show current agent state
+  memory       View a memory file
+  providers    List all supported LLM providers
+
+Daemon:
+  daemon start     Start as background daemon
+  daemon stop      Stop the daemon
+  daemon status    Check daemon status
+  daemon install   Install as system service (launchd/systemd)
+  daemon uninstall Remove system service
+
+Options:
+  -c, --config <CONFIG>   Path to config file [default: ~/.selfclaw/config.toml]
+  -m, --memory-dir <DIR>  Path to memory directory [default: ~/.selfclaw/memory]
 ```
 
 ## Configuration

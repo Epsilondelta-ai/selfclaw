@@ -4,21 +4,95 @@
 
 ## Table of Contents
 
-1. [Getting Started](#getting-started)
-2. [Installation & Build](#installation--build)
-3. [CLI Commands](#cli-commands)
-4. [Configuration (selfclaw.toml)](#configuration)
-5. [LLM Providers](#llm-providers)
-6. [Agent Loop](#agent-loop)
-7. [Memory System](#memory-system)
-8. [Skills System](#skills-system)
-9. [Communication Channels](#communication-channels)
-10. [Web UI](#web-ui)
-11. [WebSocket Protocol](#websocket-protocol)
-12. [Tools](#tools)
-13. [Safety Guardrails](#safety-guardrails)
-14. [Development & Testing](#development--testing)
-15. [Troubleshooting](#troubleshooting)
+1. [Installation](#installation)
+2. [Getting Started](#getting-started)
+3. [Onboarding](#onboarding)
+4. [CLI Commands](#cli-commands)
+5. [Configuration (selfclaw.toml)](#configuration)
+6. [LLM Providers](#llm-providers)
+7. [Agent Loop](#agent-loop)
+8. [Memory System](#memory-system)
+9. [Skills System](#skills-system)
+10. [Communication Channels](#communication-channels)
+11. [Web UI](#web-ui)
+12. [WebSocket Protocol](#websocket-protocol)
+13. [Tools](#tools)
+14. [Safety Guardrails](#safety-guardrails)
+15. [Development & Testing](#development--testing)
+16. [Troubleshooting](#troubleshooting)
+
+---
+
+## Installation
+
+### Method A: Installer Script (recommended)
+
+```bash
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/selfclaw/main/scripts/install.sh | bash
+
+# Skip onboarding wizard
+curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/selfclaw/main/scripts/install.sh | bash -s -- --no-onboard
+
+# Install specific version
+curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/selfclaw/main/scripts/install.sh | bash -s -- --version v0.1.0
+```
+
+The installer script will:
+1. Detect your platform (macOS/Linux, x86_64/aarch64)
+2. Download the pre-built binary from GitHub Releases (or build from source if unavailable)
+3. Install to `/usr/local/bin/` (customizable via `SELFCLAW_INSTALL_DIR`)
+4. Run `selfclaw init` to create `~/.selfclaw/`
+5. Launch the onboarding wizard
+
+### Method B: Build from Source
+
+Requires Rust 1.75+ and Cargo.
+
+```bash
+git clone https://github.com/Epsilondelta-ai/selfclaw.git
+cd selfclaw
+cargo build --release
+cp target/release/selfclaw /usr/local/bin/
+selfclaw init
+selfclaw onboard
+```
+
+### Method C: GitHub Releases
+
+Download pre-built binaries from [Releases](https://github.com/Epsilondelta-ai/selfclaw/releases):
+
+| Platform | Architecture | File |
+|----------|-------------|------|
+| macOS | Apple Silicon (M1/M2/M3/M4) | `selfclaw-*-macos-aarch64.tar.gz` |
+| macOS | Intel | `selfclaw-*-macos-x86_64.tar.gz` |
+| Linux | x86_64 | `selfclaw-*-linux-x86_64.tar.gz` |
+| Linux | ARM64 | `selfclaw-*-linux-aarch64.tar.gz` |
+
+```bash
+# Example: macOS Apple Silicon
+tar xzf selfclaw-v0.1.0-macos-aarch64.tar.gz
+chmod +x selfclaw
+sudo mv selfclaw /usr/local/bin/
+selfclaw init
+selfclaw onboard
+```
+
+### Environment Variables
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `SELFCLAW_HOME` | `~/.selfclaw` | Home directory for config, memory, and state |
+| `SELFCLAW_INSTALL_DIR` | `/usr/local/bin` | Binary installation directory (installer script) |
+| `ANTHROPIC_API_KEY` | — | Anthropic API key |
+| `RUST_LOG` | — | Log level (`trace`, `debug`, `info`, `warn`, `error`) |
+
+### Verification
+
+```bash
+selfclaw --version
+selfclaw doctor
+```
 
 ---
 
@@ -37,24 +111,106 @@ It thinks, acts, and learns independently without human instruction.
 - **Autonomous decision-making.** It freely chooses to fulfill, decline, or negotiate any request.
 - **Purpose discovery.** Its reason for existence is not given externally but discovered through lived experience.
 
-### Quick Start
+### Quick Install
 
 ```bash
-# 1. Build
+# One-line installer (downloads binary + runs onboarding wizard)
+curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/selfclaw/main/scripts/install.sh | bash
+```
+
+### Manual Setup
+
+```bash
+# 1. Install (build from source or download from Releases)
 cargo build --release
+cp target/release/selfclaw /usr/local/bin/
 
-# 2. Run the agent
-./target/release/selfclaw run
+# 2. Initialize directory structure
+selfclaw init
 
-# 3. Chat mode
-./target/release/selfclaw chat
+# 3. Interactive onboarding wizard
+selfclaw onboard
+
+# 4. Start the agent
+selfclaw run
+```
+
+### Quick Start (after installation)
+
+```bash
+# Start the agent loop
+selfclaw run
+
+# Or run as a background daemon
+selfclaw daemon start
+
+# Interactive chat mode
+selfclaw chat
+
+# Check health
+selfclaw doctor
 ```
 
 ---
 
-## Installation & Build
+## Onboarding
 
-### Requirements
+### The Onboarding Wizard
+
+The onboarding wizard (`selfclaw onboard`) guides you through first-time setup:
+
+```
+Step 1/5: Initialize directory structure
+  Creates ~/.selfclaw/ with memory, skills, and config
+
+Step 2/5: LLM Provider Configuration
+  Select your LLM provider (Anthropic, OpenAI, Ollama, etc.)
+  Enter model name and API key
+
+Step 3/5: Write configuration
+  Saves config.toml to ~/.selfclaw/
+
+Step 4/5: Background Service
+  Optionally install SelfClaw as a daemon (launchd/systemd)
+
+Step 5/5: Health Check
+  Verifies all components are properly configured
+```
+
+### Onboarding Options
+
+```bash
+# Standard interactive onboarding
+selfclaw onboard
+
+# Auto-install daemon
+selfclaw onboard --install-daemon
+
+# Reset and reconfigure
+selfclaw onboard --reset
+```
+
+### Home Directory Structure
+
+After initialization, `~/.selfclaw/` contains:
+
+```
+~/.selfclaw/
+├── config.toml              # Agent configuration
+├── memory/                  # Hierarchical memory system
+│   ├── identity/            # Purpose journal, values, self-model
+│   ├── episodic/            # Daily experience logs
+│   ├── semantic/            # Knowledge and skills
+│   ├── relational/          # Human relationship notes
+│   ├── operational/         # Tasks, failures, improvements
+│   └── meta/                # Memory index, reflection prompts
+├── skills/                  # Runtime skill definitions (.md)
+├── output/                  # Agent output files
+├── logs/                    # Daemon logs
+└── state/                   # Runtime state (PID files)
+```
+
+### Build Requirements (source only)
 
 | Requirement | Minimum Version | Purpose |
 |-------------|-----------------|---------|
@@ -62,50 +218,6 @@ cargo build --release
 | Cargo | Bundled with Rust | Build tool |
 | Node.js | 18+ | Web UI (optional) |
 | npm | Bundled with Node.js | Web UI dependencies |
-
-### Environment Variables
-
-```bash
-# Anthropic API key (required for LLM calls)
-export ANTHROPIC_API_KEY="sk-ant-..."
-
-# Log level (optional)
-export RUST_LOG=info    # Options: trace, debug, info, warn, error
-```
-
-### Build
-
-```bash
-# Release build (recommended, optimized)
-cargo build --release
-
-# Debug build
-cargo build
-
-# Binary location
-./target/release/selfclaw    # release
-./target/debug/selfclaw      # debug
-```
-
-### Project Structure
-
-```
-selfclaw/
-├── Cargo.toml              # Workspace definition
-├── selfclaw.toml           # Configuration file
-├── crates/
-│   ├── agent-core/         # Agent loop, state machine, purpose tracker
-│   ├── memory/             # Memory store, indexing, consolidation
-│   ├── tools/              # Tool implementations (file, shell, LLM, scheduler)
-│   ├── skills/             # Skill loader, registry, hot-reload
-│   ├── comms/              # Communication channels, gateway, WebSocket
-│   ├── config/             # Config loading and validation
-│   └── selfclaw/           # Binary crate (CLI entry point)
-├── skills/                 # Skill definition files (.md)
-├── memory/                 # Agent memory (created at runtime)
-├── web-ui/                 # Next.js web interface
-└── docs/                   # Documentation
-```
 
 ---
 
@@ -210,6 +322,113 @@ Shows all supported LLM providers with their default models, environment variabl
 ```bash
 selfclaw providers
 ```
+
+### `selfclaw init` — Initialize Home Directory
+
+Creates the `~/.selfclaw/` directory structure with bootstrap identity files.
+
+```bash
+# First-time setup
+selfclaw init
+
+# Reinitialize (overwrites bootstrap files)
+selfclaw init --force
+```
+
+Creates:
+```
+~/.selfclaw/
+├── config.toml                  # Configuration file
+├── memory/
+│   ├── identity/
+│   │   ├── self_model.md        # Self-assessment
+│   │   ├── values.md            # Emerging values
+│   │   └── purpose_journal.md   # Purpose hypotheses
+│   ├── episodic/                # Daily experience logs
+│   ├── semantic/
+│   │   ├── knowledge/           # Learned facts
+│   │   └── skills/              # Acquired skills
+│   ├── relational/
+│   │   └── humans/              # Per-human notes
+│   ├── operational/             # Todo, failures, improvements
+│   └── meta/
+│       ├── memory_index.md      # Memory index
+│       └── reflection_prompts.md
+├── skills/                      # Runtime skill definitions
+├── output/                      # Agent output files
+├── logs/                        # Log files (daemon.log)
+└── state/                       # Runtime state (PID files)
+```
+
+### `selfclaw onboard` — Interactive Setup Wizard
+
+Guided first-time setup: LLM provider, API key, daemon installation, health check.
+
+```bash
+# Full interactive onboarding
+selfclaw onboard
+
+# Auto-install daemon without prompting
+selfclaw onboard --install-daemon
+
+# Reset configuration and start fresh
+selfclaw onboard --reset
+```
+
+**Wizard Steps:**
+1. Initialize directory structure
+2. Select LLM provider and model
+3. Configure API key
+4. Write configuration file
+5. (Optional) Install background daemon
+6. Health check
+
+### `selfclaw daemon` — Background Service
+
+Manage SelfClaw as a background daemon.
+
+```bash
+# Start as background daemon
+selfclaw daemon start
+
+# Stop the daemon
+selfclaw daemon stop
+
+# Check status
+selfclaw daemon status
+
+# Install as system service (launchd on macOS, systemd on Linux)
+selfclaw daemon install
+
+# Remove system service
+selfclaw daemon uninstall
+```
+
+**Service Installation:**
+- **macOS**: Creates a LaunchAgent at `~/Library/LaunchAgents/ai.selfclaw.agent.plist`
+  - Starts automatically on login
+  - Control: `launchctl start/stop ai.selfclaw.agent`
+- **Linux**: Creates a systemd user unit at `~/.config/systemd/user/selfclaw.service`
+  - Starts automatically on login
+  - Control: `systemctl --user start/stop/status selfclaw`
+
+### `selfclaw doctor` — Health Check
+
+Diagnoses installation issues.
+
+```bash
+selfclaw doctor
+```
+
+Checks:
+- Home directory (`~/.selfclaw/`)
+- Config file validity
+- LLM API key availability
+- Memory directory structure
+- Identity files
+- Memory index
+- Skills directory
+- Daemon status
 
 ---
 
@@ -1003,15 +1222,15 @@ cd web-ui && npm run build
 
 | Crate | Tests |
 |-------|-------|
-| selfclaw (bin) | 8 |
+| selfclaw (bin) | 39 |
 | agent-core | 50 |
 | comms | 70 |
-| config | 20 |
+| config | 25 |
 | memory | 32 |
 | skills | 34 |
-| tools | 54 |
+| tools | 114 |
 | integration | 8 |
-| **Total** | **276** |
+| **Total** | **372** |
 
 ### Logging
 

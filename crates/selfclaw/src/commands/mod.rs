@@ -3,3 +3,7 @@ pub mod chat;
 pub mod status;
 pub mod memory;
 pub mod providers;
+pub mod init;
+pub mod onboard;
+pub mod daemon;
+pub mod doctor;
