@@ -265,6 +265,13 @@ SelfClaw uses a hierarchical markdown-based memory system:
 | `operational/` | Todo list, failures, improvements |
 | `meta/` | Memory index, reflection prompts |
 
+## Documentation
+
+For detailed usage instructions, configuration reference, and troubleshooting:
+
+- **[Usage Guide (English)](docs/USAGE_GUIDE.md)**
+- **[Usage Guide (Korean / 한국어)](docs/USAGE_GUIDE.ko.md)**
+
 ## Testing
 
 ```bash

@@ -93,7 +93,7 @@ impl ProviderKind {
             Self::DeepSeek => "deepseek-chat",
             Self::Together => "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
             Self::Moonshot => "kimi-k2.5",
-            Self::Bedrock => "anthropic.claude-sonnet-4-6-20250217-v1:0",
+            Self::Bedrock => "anthropic.claude-sonnet-4-6",
             Self::Custom => "default",
         }
     }
@@ -1983,7 +1983,7 @@ mod tests {
     fn test_bedrock_build_request() {
         let p = BedrockProvider::new(None);
         let req = p.build_request(
-            "anthropic.claude-sonnet-4-6-20250217-v1:0",
+            "anthropic.claude-sonnet-4-6",
             4096,
             0.7,
             "Hello",
@@ -2085,7 +2085,7 @@ mod tests {
     fn test_create_provider_bedrock() {
         let config = selfclaw_config::LlmConfig {
             provider: "bedrock".to_string(),
-            model: "anthropic.claude-sonnet-4-6-20250217-v1:0".to_string(),
+            model: "anthropic.claude-sonnet-4-6".to_string(),
             max_tokens: 4096,
             temperature: 0.7,
             api_key: None,

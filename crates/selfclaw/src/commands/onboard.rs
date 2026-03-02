@@ -552,7 +552,7 @@ fn default_model_for(provider: &str) -> &'static str {
         "deepseek" => "deepseek-chat",
         "together" => "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
         "moonshot" => "kimi-k2.5",
-        "bedrock" => "anthropic.claude-sonnet-4-6-20250217-v1:0",
+        "bedrock" => "anthropic.claude-sonnet-4-6",
         _ => "gpt-5.2",
     }
 }

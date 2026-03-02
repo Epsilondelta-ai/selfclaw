@@ -1,5 +1,7 @@
 # SelfClaw 사용 가이드
 
+> Also available in [English](./USAGE_GUIDE.md).
+
 ## 목차
 
 1. [설치](#설치)
@@ -424,12 +426,18 @@ selfclaw daemon install
 selfclaw daemon uninstall
 ```
 
+**데몬 로그**는 `~/.selfclaw/logs/daemon.log`에 기록됩니다. `tail -f ~/.selfclaw/logs/daemon.log`로 실시간 모니터링할 수 있습니다.
+
+**PID 파일**은 `~/.selfclaw/state/daemon.pid`에 저장됩니다. 데몬이 실행 중이라고 표시되지만 응답하지 않는 경우, 이 파일을 삭제하고 재시작하면 됩니다.
+
 **서비스 설치:**
 - **macOS**: `~/Library/LaunchAgents/ai.selfclaw.agent.plist`에 LaunchAgent 생성
   - 로그인 시 자동 시작
+  - 로그: `~/Library/Logs/selfclaw.log` (stdout), `~/Library/Logs/selfclaw-error.log` (stderr)
   - 제어: `launchctl start/stop ai.selfclaw.agent`
 - **Linux**: `~/.config/systemd/user/selfclaw.service`에 systemd 유저 유닛 생성
   - 로그인 시 자동 시작
+  - 로그: `journalctl --user -u selfclaw -f`
   - 제어: `systemctl --user start/stop/status selfclaw`
 
 ### `selfclaw doctor` — 설치 상태 진단
@@ -440,15 +448,20 @@ selfclaw daemon uninstall
 selfclaw doctor
 ```
 
-확인 항목:
-- 홈 디렉토리 (`~/.selfclaw/`)
-- 설정 파일 유효성
-- LLM API 키 사용 가능 여부
-- 메모리 디렉토리 구조
-- 정체성 파일
-- 메모리 인덱스
-- 스킬 디렉토리들
-- 데몬 상태
+다음 항목을 확인하고 각각 OK, WARN, FAIL로 보고합니다:
+
+| 확인 항목 | 검증 내용 |
+|----------|----------|
+| 홈 디렉토리 | `~/.selfclaw/`가 존재하는지 |
+| 설정 파일 | `~/.selfclaw/config.toml`이 존재하고 올바르게 파싱되는지 |
+| LLM API 키 | 설정된 프로바이더의 환경 변수가 설정되어 있는지 (예: `ANTHROPIC_API_KEY`) |
+| 메모리 디렉토리 | `~/.selfclaw/memory/`와 필수 하위 디렉토리가 존재하는지 |
+| 정체성 파일 | `purpose_journal.md`, `values.md`, `self_model.md`가 `memory/identity/`에 있는지 |
+| 메모리 인덱스 | `memory/meta/memory_index.md`가 존재하는지 |
+| 스킬 디렉토리 | `skills_dirs`의 각 디렉토리 존재 여부와 스킬 파일 수 |
+| 데몬 상태 | 데몬이 현재 실행 중인지 (PID 파일 확인) |
+
+확인에 실패한 항목이 있으면 수정 방법을 함께 안내합니다.
 
 ---
 
@@ -456,6 +469,16 @@ selfclaw doctor
 
 `selfclaw.toml` 파일로 에이전트를 설정합니다. 파일이 없으면 기본값이 사용됩니다.
 모든 필드는 선택 사항입니다.
+
+### 설정 파일 검색 순서
+
+SelfClaw는 다음 순서로 설정 파일을 찾습니다:
+
+1. **CLI 플래그**: `selfclaw -c /path/to/config.toml run` (최우선)
+2. **현재 디렉토리**: `./selfclaw.toml`
+3. **홈 디렉토리**: `~/.selfclaw/config.toml` (`selfclaw init`과 `selfclaw onboard`가 생성)
+
+설정 파일을 찾지 못하면 모든 항목에 내장 기본값을 사용합니다.
 
 ### 전체 설정 예시
 
@@ -554,7 +577,7 @@ SelfClaw는 12개의 내장 LLM 프로바이더와 OpenAI 호환 엔드포인트
 | DeepSeek | `deepseek` | deepseek-chat | `DEEPSEEK_API_KEY` | api.deepseek.com |
 | Together AI | `together` | meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8 | `TOGETHER_API_KEY` | api.together.xyz |
 | Moonshot (Kimi) | `moonshot` | kimi-k2.5 | `MOONSHOT_API_KEY` | api.moonshot.cn |
-| Amazon Bedrock | `bedrock` | anthropic.claude-sonnet-4-6-20250217-v1:0 | `AWS_ACCESS_KEY_ID` | bedrock-runtime.us-east-1.amazonaws.com |
+| Amazon Bedrock | `bedrock` | anthropic.claude-sonnet-4-6 | `AWS_ACCESS_KEY_ID` | bedrock-runtime.us-east-1.amazonaws.com |
 
 ### 프로바이더 별칭
 
@@ -1156,14 +1179,16 @@ cd web-ui && npm run dev
 
 | 도구 | 설명 | 입력 형식 |
 |------|------|-----------|
-| `file_read` | 파일 읽기 | `{"path": "identity/values.md"}` |
-| `file_write` | 파일 생성/덮어쓰기 | `{"path": "...", "content": "..."}` |
-| `file_append` | 파일에 내용 추가 | `{"path": "...", "content": "..."}` |
-| `shell_exec` | 셸 명령 실행 | `{"command": "ls -la"}` |
-| `llm_call` | LLM API 호출 | `{"prompt": "...", "system": "..."}` |
-| `human_message` | 인간에게 메시지 전송 | `{"content": "...", "channel": "cli"}` |
-| `schedule` | 미래 작업 예약 | `{"action": "...", "delay_secs": 300}` |
-| `memory_query` | 메모리 의미 검색 | `{"query": "..."}` |
+| `file_read` | 메모리 디렉토리에서 파일 읽기 | `{"path": "identity/values.md"}` |
+| `file_write` | 메모리 디렉토리에 파일 생성/덮어쓰기 | `{"path": "...", "content": "..."}` |
+| `file_append` | 기존 파일에 내용 추가 | `{"path": "...", "content": "..."}` |
+| `shell_exec` | 셸 명령 실행 (샌드박스 적용) | `{"command": "ls -la"}` |
+| `web_search` | 인터넷에서 정보 검색 | `{"query": "..."}` |
+| `web_fetch` | 특정 URL에서 콘텐츠 가져오기 | `{"url": "https://..."}` |
+| `llm_call` | 커스텀 프롬프트로 LLM API 호출 | `{"prompt": "...", "system": "..."}` |
+| `human_message` | 특정 채널로 인간에게 메시지 전송 | `{"content": "...", "channel": "cli"}` |
+| `schedule` | 미래 작업 또는 리마인더 예약 | `{"action": "...", "delay_secs": 300}` |
+| `memory_query` | 메모리 파일에서 의미 검색 | `{"query": "..."}` |
 
 ### human_message 도구 (채널 라우팅)
 
@@ -1358,6 +1383,42 @@ grep -A3 discord selfclaw.toml
 # (Telegram: 정수, Discord/Slack: 문자열)
 ```
 
+### 데몬이 시작/정지되지 않을 때
+
+```bash
+# 데몬이 이미 실행 중인지 확인
+selfclaw daemon status
+
+# "running"이지만 응답이 없는 경우 PID 파일 확인
+cat ~/.selfclaw/state/daemon.pid
+
+# 멈춘 데몬 수동 종료
+kill $(cat ~/.selfclaw/state/daemon.pid)
+rm ~/.selfclaw/state/daemon.pid
+
+# 데몬 로그에서 오류 확인
+tail -50 ~/.selfclaw/logs/daemon.log
+```
+
+### API 키를 찾을 수 없을 때
+
+```bash
+# 설정된 프로바이더 확인
+grep provider selfclaw.toml
+
+# 프로바이더에 맞는 환경 변수 설정
+export ANTHROPIC_API_KEY="sk-ant-..."    # Anthropic
+export OPENAI_API_KEY="sk-..."           # OpenAI
+export GOOGLE_API_KEY="..."              # Google Gemini
+
+# 또는 selfclaw.toml에 직접 설정
+# [llm]
+# api_key = "sk-..."
+
+# doctor로 확인
+selfclaw doctor
+```
+
 ### 메모리 접근 오류
 
 ```bash
@@ -1371,5 +1432,18 @@ mkdir -p ./memory/identity ./memory/episodic ./memory/meta
 echo "# Memory Index" > ./memory/meta/memory_index.md
 echo "# Values" > ./memory/identity/values.md
 echo "# Self Model" > ./memory/identity/self_model.md
-echo "# Purpose Journal\n\n## Entries" > ./memory/identity/purpose_journal.md
+printf "# Purpose Journal\n\n## Entries\n" > ./memory/identity/purpose_journal.md
+```
+
+### 처음부터 재설치
+
+일관성 없는 상태가 된 경우 전체를 초기화할 수 있습니다:
+
+```bash
+# 홈 디렉토리 삭제 (모든 메모리와 설정이 삭제됩니다!)
+rm -rf ~/.selfclaw
+
+# 재초기화
+selfclaw init
+selfclaw onboard
 ```

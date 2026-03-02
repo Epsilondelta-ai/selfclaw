@@ -265,6 +265,13 @@ SelfClaw는 계층적 마크다운 기반 메모리 시스템을 사용합니다
 | `operational/` | 할 일 목록, 실패 사례, 개선 사항 |
 | `meta/` | 메모리 인덱스, 성찰 질문 |
 
+## 문서
+
+설치, 설정, 명령어, 트러블슈팅에 대한 상세한 안내:
+
+- **[사용 가이드 (한국어)](docs/USAGE_GUIDE.ko.md)**
+- **[Usage Guide (English)](docs/USAGE_GUIDE.md)**
+
 ## 테스트
 
 ```bash

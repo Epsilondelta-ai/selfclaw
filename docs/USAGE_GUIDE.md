@@ -451,12 +451,18 @@ selfclaw daemon install
 selfclaw daemon uninstall
 ```
 
+**Daemon logs** are written to `~/.selfclaw/logs/daemon.log`. Use `tail -f ~/.selfclaw/logs/daemon.log` to monitor in real time.
+
+**PID file** is stored at `~/.selfclaw/state/daemon.pid`. If SelfClaw reports the daemon is running but it isn't responding, you can safely delete this file and restart.
+
 **Service Installation:**
 - **macOS**: Creates a LaunchAgent at `~/Library/LaunchAgents/ai.selfclaw.agent.plist`
   - Starts automatically on login
+  - Logs: `~/Library/Logs/selfclaw.log` (stdout) and `~/Library/Logs/selfclaw-error.log` (stderr)
   - Control: `launchctl start/stop ai.selfclaw.agent`
 - **Linux**: Creates a systemd user unit at `~/.config/systemd/user/selfclaw.service`
   - Starts automatically on login
+  - Logs: `journalctl --user -u selfclaw -f`
   - Control: `systemctl --user start/stop/status selfclaw`
 
 ### `selfclaw doctor` — Health Check
@@ -467,15 +473,20 @@ Diagnoses installation issues.
 selfclaw doctor
 ```
 
-Checks:
-- Home directory (`~/.selfclaw/`)
-- Config file validity
-- LLM API key availability
-- Memory directory structure
-- Identity files
-- Memory index
-- Skills directories
-- Daemon status
+Checks the following items and reports each as OK, WARN, or FAIL:
+
+| Check | What it verifies |
+|-------|-----------------|
+| Home directory | `~/.selfclaw/` exists |
+| Config file | `~/.selfclaw/config.toml` exists and parses correctly |
+| LLM API key | The environment variable for the configured provider is set (e.g. `ANTHROPIC_API_KEY`) |
+| Memory directory | `~/.selfclaw/memory/` and required subdirectories exist |
+| Identity files | `purpose_journal.md`, `values.md`, `self_model.md` exist in `memory/identity/` |
+| Memory index | `memory/meta/memory_index.md` exists |
+| Skills directories | Each directory in `skills_dirs` is checked for existence and skill count |
+| Daemon status | Whether the daemon is currently running (PID file check) |
+
+If any check fails, `doctor` prints a suggested fix command.
 
 ---
 
@@ -483,6 +494,16 @@ Checks:
 
 Configure the agent via `selfclaw.toml`. If the file is missing, defaults are used.
 All fields are optional.
+
+### Config File Locations
+
+SelfClaw looks for the configuration file in the following order:
+
+1. **CLI flag**: `selfclaw -c /path/to/config.toml run` (highest priority)
+2. **Current directory**: `./selfclaw.toml`
+3. **Home directory**: `~/.selfclaw/config.toml` (created by `selfclaw init` and `selfclaw onboard`)
+
+If no config file is found, SelfClaw uses built-in defaults for all settings.
 
 ### Full Configuration Reference
 
@@ -581,7 +602,7 @@ SelfClaw supports 12 built-in LLM providers plus any OpenAI-compatible endpoint.
 | DeepSeek | `deepseek` | deepseek-chat | `DEEPSEEK_API_KEY` | api.deepseek.com |
 | Together AI | `together` | meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8 | `TOGETHER_API_KEY` | api.together.xyz |
 | Moonshot (Kimi) | `moonshot` | kimi-k2.5 | `MOONSHOT_API_KEY` | api.moonshot.cn |
-| Amazon Bedrock | `bedrock` | anthropic.claude-sonnet-4-6-20250217-v1:0 | `AWS_ACCESS_KEY_ID` | bedrock-runtime.us-east-1.amazonaws.com |
+| Amazon Bedrock | `bedrock` | anthropic.claude-sonnet-4-6 | `AWS_ACCESS_KEY_ID` | bedrock-runtime.us-east-1.amazonaws.com |
 
 ### Provider Aliases
 
@@ -1168,14 +1189,16 @@ Tools available to the agent during the ACT phase.
 
 | Tool | Description | Input Format |
 |------|-------------|--------------|
-| `file_read` | Read a file | `{"path": "identity/values.md"}` |
-| `file_write` | Create or overwrite a file | `{"path": "...", "content": "..."}` |
-| `file_append` | Append content to a file | `{"path": "...", "content": "..."}` |
-| `shell_exec` | Execute a shell command | `{"command": "ls -la"}` |
-| `llm_call` | Call the LLM API | `{"prompt": "...", "system": "..."}` |
-| `human_message` | Send a message to a human | `{"content": "...", "channel": "cli"}` |
-| `schedule` | Schedule a future action | `{"action": "...", "delay_secs": 300}` |
-| `memory_query` | Semantic search through memory | `{"query": "..."}` |
+| `file_read` | Read a file from the memory directory | `{"path": "identity/values.md"}` |
+| `file_write` | Create or overwrite a file in the memory directory | `{"path": "...", "content": "..."}` |
+| `file_append` | Append content to an existing file | `{"path": "...", "content": "..."}` |
+| `shell_exec` | Execute a shell command (sandboxed) | `{"command": "ls -la"}` |
+| `web_search` | Search the internet for information | `{"query": "..."}` |
+| `web_fetch` | Retrieve content from a specific URL | `{"url": "https://..."}` |
+| `llm_call` | Make a call to the LLM API with a custom prompt | `{"prompt": "...", "system": "..."}` |
+| `human_message` | Send a message to a human via a channel | `{"content": "...", "channel": "cli"}` |
+| `schedule` | Schedule a future action or reminder | `{"action": "...", "delay_secs": 300}` |
+| `memory_query` | Semantic search through memory files | `{"query": "..."}` |
 
 ### human_message Tool (Channel Routing)
 
@@ -1371,6 +1394,42 @@ grep -A3 discord selfclaw.toml
 # (Telegram: integers, Discord/Slack: strings)
 ```
 
+### Daemon won't start or stop
+
+```bash
+# Check if the daemon is already running
+selfclaw daemon status
+
+# If "running" but unresponsive, check the PID file
+cat ~/.selfclaw/state/daemon.pid
+
+# Manually kill a stuck daemon
+kill $(cat ~/.selfclaw/state/daemon.pid)
+rm ~/.selfclaw/state/daemon.pid
+
+# Check daemon logs for errors
+tail -50 ~/.selfclaw/logs/daemon.log
+```
+
+### API key not found
+
+```bash
+# Check which provider is configured
+grep provider selfclaw.toml
+
+# Set the correct environment variable for your provider
+export ANTHROPIC_API_KEY="sk-ant-..."    # Anthropic
+export OPENAI_API_KEY="sk-..."           # OpenAI
+export GOOGLE_API_KEY="..."              # Google Gemini
+
+# Or set the key directly in selfclaw.toml
+# [llm]
+# api_key = "sk-..."
+
+# Verify with doctor
+selfclaw doctor
+```
+
 ### Memory access errors
 
 ```bash
@@ -1385,4 +1444,17 @@ echo "# Memory Index" > ./memory/meta/memory_index.md
 echo "# Values" > ./memory/identity/values.md
 echo "# Self Model" > ./memory/identity/self_model.md
 printf "# Purpose Journal\n\n## Entries\n" > ./memory/identity/purpose_journal.md
+```
+
+### Reinstalling from scratch
+
+If things are in an inconsistent state, you can reset everything:
+
+```bash
+# Remove the home directory (this deletes all memory and config!)
+rm -rf ~/.selfclaw
+
+# Reinitialize
+selfclaw init
+selfclaw onboard
 ```

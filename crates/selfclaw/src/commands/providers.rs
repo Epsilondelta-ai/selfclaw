@@ -28,7 +28,7 @@ pub fn execute() {
     println!("Configuration example:");
     println!("  [llm]");
     println!("  provider = \"openai\"");
-    println!("  model = \"gpt-4o\"");
+    println!("  model = \"gpt-5.2\"");
     println!("  # api_key = \"sk-...\"        # optional, overrides env var");
     println!("  # base_url = \"https://...\"   # optional, overrides default");
 }
