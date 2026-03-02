@@ -593,7 +593,7 @@ SelfClaw supports 12 built-in LLM providers plus any OpenAI-compatible endpoint.
 |----------|------------|---------------|---------|-------------|
 | Anthropic | `anthropic` | claude-sonnet-4-6-20250217 | `ANTHROPIC_API_KEY` | api.anthropic.com |
 | OpenAI | `openai` | gpt-5.2 | `OPENAI_API_KEY` | api.openai.com |
-| Google Gemini | `google` | gemini-2.5-flash | `GOOGLE_API_KEY` | generativelanguage.googleapis.com |
+| Google Gemini | `google` | gemini-2.5-pro | `GOOGLE_API_KEY` | generativelanguage.googleapis.com |
 | Ollama (local) | `ollama` | llama4 | — (no key needed) | localhost:11434 |
 | OpenRouter | `openrouter` | anthropic/claude-sonnet-4-6-20250217 | `OPENROUTER_API_KEY` | openrouter.ai/api |
 | Groq | `groq` | llama-3.3-70b-versatile | `GROQ_API_KEY` | api.groq.com/openai |

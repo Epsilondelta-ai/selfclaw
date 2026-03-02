@@ -543,7 +543,7 @@ fn default_model_for(provider: &str) -> &'static str {
     match provider {
         "anthropic" => "claude-sonnet-4-6-20250217",
         "openai" => "gpt-5.2",
-        "google" => "gemini-2.5-flash",
+        "google" => "gemini-2.5-pro",
         "ollama" => "llama4",
         "openrouter" => "anthropic/claude-sonnet-4-6-20250217",
         "groq" => "llama-3.3-70b-versatile",
@@ -582,7 +582,7 @@ mod tests {
     fn test_default_model_for_all_providers() {
         assert_eq!(default_model_for("anthropic"), "claude-sonnet-4-6-20250217");
         assert_eq!(default_model_for("openai"), "gpt-5.2");
-        assert_eq!(default_model_for("google"), "gemini-2.5-flash");
+        assert_eq!(default_model_for("google"), "gemini-2.5-pro");
         assert_eq!(default_model_for("ollama"), "llama4");
         assert_eq!(default_model_for("xai"), "grok-4");
         assert_eq!(default_model_for("unknown"), "gpt-5.2");

@@ -568,7 +568,7 @@ SelfClaw는 12개의 내장 LLM 프로바이더와 OpenAI 호환 엔드포인트
 |-----------|----------|----------|----------|-------------|
 | Anthropic | `anthropic` | claude-sonnet-4-6-20250217 | `ANTHROPIC_API_KEY` | api.anthropic.com |
 | OpenAI | `openai` | gpt-5.2 | `OPENAI_API_KEY` | api.openai.com |
-| Google Gemini | `google` | gemini-2.5-flash | `GOOGLE_API_KEY` | generativelanguage.googleapis.com |
+| Google Gemini | `google` | gemini-2.5-pro | `GOOGLE_API_KEY` | generativelanguage.googleapis.com |
 | Ollama (로컬) | `ollama` | llama4 | — (키 불필요) | localhost:11434 |
 | OpenRouter | `openrouter` | anthropic/claude-sonnet-4-6-20250217 | `OPENROUTER_API_KEY` | openrouter.ai/api |
 | Groq | `groq` | llama-3.3-70b-versatile | `GROQ_API_KEY` | api.groq.com/openai |

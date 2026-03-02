@@ -84,7 +84,7 @@ impl ProviderKind {
         match self {
             Self::Anthropic => "claude-sonnet-4-6-20250217",
             Self::OpenAI => "gpt-5.2",
-            Self::Google => "gemini-2.5-flash",
+            Self::Google => "gemini-2.5-pro",
             Self::Ollama => "llama4",
             Self::OpenRouter => "anthropic/claude-sonnet-4-6-20250217",
             Self::Groq => "llama-3.3-70b-versatile",
@@ -1324,7 +1324,7 @@ mod tests {
             "claude-sonnet-4-6-20250217"
         );
         assert_eq!(ProviderKind::OpenAI.default_model(), "gpt-5.2");
-        assert_eq!(ProviderKind::Google.default_model(), "gemini-2.5-flash");
+        assert_eq!(ProviderKind::Google.default_model(), "gemini-2.5-pro");
         assert_eq!(ProviderKind::Ollama.default_model(), "llama4");
         assert_eq!(
             ProviderKind::Groq.default_model(),
