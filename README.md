@@ -189,7 +189,7 @@ skills_dirs = ["~/.agents/skills", "~/.selfclaw/skills"]
 
 [llm]
 provider = "anthropic"
-model = "claude-sonnet-4-6-20250217"
+model = "claude-sonnet-4-6"
 max_tokens = 4096
 temperature = 0.7
 

@@ -331,7 +331,7 @@ fn test_default_config_values() {
     assert_eq!(config.agent.consolidation_every_n_cycles, 50);
     assert_eq!(config.agent.max_actions_per_cycle, 5);
     assert_eq!(config.llm.provider, "anthropic");
-    assert_eq!(config.llm.model, "claude-sonnet-4-6-20250217");
+    assert_eq!(config.llm.model, "claude-sonnet-4-6");
     assert_eq!(config.llm.max_tokens, 4096);
     assert!(config.safety.sandbox_shell);
     assert!(config.communication.cli_enabled);

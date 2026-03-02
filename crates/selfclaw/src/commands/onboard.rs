@@ -194,17 +194,17 @@ fn detect_provider_from_env() -> Option<(&'static str, &'static str)> {
         (
             "ANTHROPIC_API_KEY",
             "anthropic",
-            "claude-sonnet-4-6-20250217",
+            "claude-sonnet-4-6",
         ),
         ("OPENAI_API_KEY", "openai", "gpt-5.2"),
         ("GOOGLE_API_KEY", "google", "gemini-2.5-flash"),
         (
             "OPENROUTER_API_KEY",
             "openrouter",
-            "anthropic/claude-sonnet-4-6-20250217",
+            "anthropic/claude-sonnet-4.6",
         ),
         ("GROQ_API_KEY", "groq", "llama-3.3-70b-versatile"),
-        ("XAI_API_KEY", "xai", "grok-4"),
+        ("XAI_API_KEY", "xai", "grok-4-1-fast-reasoning"),
         ("MISTRAL_API_KEY", "mistral", "mistral-large-latest"),
         ("DEEPSEEK_API_KEY", "deepseek", "deepseek-chat"),
         (
@@ -541,13 +541,13 @@ fn parse_id_list(input: &str) -> toml::Value {
 
 fn default_model_for(provider: &str) -> &'static str {
     match provider {
-        "anthropic" => "claude-sonnet-4-6-20250217",
+        "anthropic" => "claude-sonnet-4-6",
         "openai" => "gpt-5.2",
-        "google" => "gemini-2.5-pro",
+        "google" => "gemini-3-flash-preview",
         "ollama" => "llama4",
-        "openrouter" => "anthropic/claude-sonnet-4-6-20250217",
+        "openrouter" => "anthropic/claude-sonnet-4.6",
         "groq" => "llama-3.3-70b-versatile",
-        "xai" => "grok-4",
+        "xai" => "grok-4-1-fast-reasoning",
         "mistral" => "mistral-large-latest",
         "deepseek" => "deepseek-chat",
         "together" => "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
@@ -580,11 +580,11 @@ mod tests {
 
     #[test]
     fn test_default_model_for_all_providers() {
-        assert_eq!(default_model_for("anthropic"), "claude-sonnet-4-6-20250217");
+        assert_eq!(default_model_for("anthropic"), "claude-sonnet-4-6");
         assert_eq!(default_model_for("openai"), "gpt-5.2");
-        assert_eq!(default_model_for("google"), "gemini-2.5-pro");
+        assert_eq!(default_model_for("google"), "gemini-3-flash-preview");
         assert_eq!(default_model_for("ollama"), "llama4");
-        assert_eq!(default_model_for("xai"), "grok-4");
+        assert_eq!(default_model_for("xai"), "grok-4-1-fast-reasoning");
         assert_eq!(default_model_for("unknown"), "gpt-5.2");
     }
 
@@ -630,7 +630,7 @@ mod tests {
         llm.insert("provider".into(), toml::Value::String("anthropic".into()));
         llm.insert(
             "model".into(),
-            toml::Value::String("claude-sonnet-4-6-20250217".into()),
+            toml::Value::String("claude-sonnet-4-6".into()),
         );
         llm.insert("max_tokens".into(), toml::Value::Integer(4096));
         llm.insert("temperature".into(), toml::Value::Float(0.7));
@@ -698,7 +698,7 @@ mod tests {
         llm.insert("provider".into(), toml::Value::String("anthropic".into()));
         llm.insert(
             "model".into(),
-            toml::Value::String("claude-sonnet-4-6-20250217".into()),
+            toml::Value::String("claude-sonnet-4-6".into()),
         );
         llm.insert("max_tokens".into(), toml::Value::Integer(4096));
         llm.insert("temperature".into(), toml::Value::Float(0.7));

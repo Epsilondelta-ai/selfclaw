@@ -493,7 +493,7 @@ skills_dirs = ["~/.agents/skills", "~/.selfclaw/skills"]  # 스킬 디렉토리 
 # ── LLM 설정 ─────────────────────────────────────────────
 [llm]
 provider = "anthropic"               # LLM 제공자 (`selfclaw providers` 참조), 기본: "anthropic"
-model = "claude-sonnet-4-6-20250217"   # 모델명, 기본: "claude-sonnet-4-6-20250217"
+model = "claude-sonnet-4-6"   # 모델명, 기본: "claude-sonnet-4-6"
 max_tokens = 4096                    # 최대 출력 토큰, 기본: 4096
 temperature = 0.7                    # 샘플링 온도 (0.0~2.0), 기본: 0.7
 # api_key = "sk-..."                # 선택: 명시적 API 키 (환경 변수 대신 사용)
@@ -566,13 +566,13 @@ SelfClaw는 12개의 내장 LLM 프로바이더와 OpenAI 호환 엔드포인트
 
 | 프로바이더 | 설정 이름 | 기본 모델 | 환경 변수 | API 기본 URL |
 |-----------|----------|----------|----------|-------------|
-| Anthropic | `anthropic` | claude-sonnet-4-6-20250217 | `ANTHROPIC_API_KEY` | api.anthropic.com |
+| Anthropic | `anthropic` | claude-sonnet-4-6 | `ANTHROPIC_API_KEY` | api.anthropic.com |
 | OpenAI | `openai` | gpt-5.2 | `OPENAI_API_KEY` | api.openai.com |
-| Google Gemini | `google` | gemini-2.5-pro | `GOOGLE_API_KEY` | generativelanguage.googleapis.com |
+| Google Gemini | `google` | gemini-3-flash-preview | `GOOGLE_API_KEY` | generativelanguage.googleapis.com |
 | Ollama (로컬) | `ollama` | llama4 | — (키 불필요) | localhost:11434 |
-| OpenRouter | `openrouter` | anthropic/claude-sonnet-4-6-20250217 | `OPENROUTER_API_KEY` | openrouter.ai/api |
+| OpenRouter | `openrouter` | anthropic/claude-sonnet-4.6 | `OPENROUTER_API_KEY` | openrouter.ai/api |
 | Groq | `groq` | llama-3.3-70b-versatile | `GROQ_API_KEY` | api.groq.com/openai |
-| xAI (Grok) | `xai` | grok-4 | `XAI_API_KEY` | api.x.ai |
+| xAI (Grok) | `xai` | grok-4-1-fast-reasoning | `XAI_API_KEY` | api.x.ai |
 | Mistral | `mistral` | mistral-large-latest | `MISTRAL_API_KEY` | api.mistral.ai |
 | DeepSeek | `deepseek` | deepseek-chat | `DEEPSEEK_API_KEY` | api.deepseek.com |
 | Together AI | `together` | meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8 | `TOGETHER_API_KEY` | api.together.xyz |
@@ -599,7 +599,7 @@ SelfClaw는 12개의 내장 LLM 프로바이더와 OpenAI 호환 엔드포인트
 ```toml
 [llm]
 provider = "anthropic"
-model = "claude-sonnet-4-6-20250217"
+model = "claude-sonnet-4-6"
 ```
 
 **OpenAI:**
@@ -623,7 +623,7 @@ model = "llama4"
 ```toml
 [llm]
 provider = "openrouter"
-model = "anthropic/claude-sonnet-4-6-20250217"
+model = "anthropic/claude-sonnet-4.6"
 ```
 
 **커스텀 OpenAI 호환 엔드포인트:**

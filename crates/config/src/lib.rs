@@ -197,7 +197,7 @@ fn default_provider() -> String {
     "anthropic".to_string()
 }
 fn default_model() -> String {
-    "claude-sonnet-4-6-20250217".to_string()
+    "claude-sonnet-4-6".to_string()
 }
 fn default_max_tokens() -> u64 {
     4096
@@ -390,7 +390,7 @@ max_actions_per_cycle = 10
 
 [llm]
 provider = "anthropic"
-model = "claude-sonnet-4-6-20250217"
+model = "claude-sonnet-4-6"
 max_tokens = 8192
 temperature = 0.5
 
@@ -410,7 +410,7 @@ web_ui_port = 8080
         assert_eq!(config.agent.consolidation_every_n_cycles, 25);
         assert_eq!(config.agent.max_actions_per_cycle, 10);
         assert_eq!(config.llm.provider, "anthropic");
-        assert_eq!(config.llm.model, "claude-sonnet-4-6-20250217");
+        assert_eq!(config.llm.model, "claude-sonnet-4-6");
         assert_eq!(config.llm.max_tokens, 8192);
         assert!((config.llm.temperature - 0.5).abs() < f64::EPSILON);
         assert_eq!(config.safety.max_api_calls_per_hour, 200);
@@ -430,7 +430,7 @@ loop_interval_secs = 120
 
 [llm]
 provider = "anthropic"
-model = "claude-sonnet-4-6-20250217"
+model = "claude-sonnet-4-6"
 max_tokens = 4096
 temperature = 0.7
 "#;
@@ -450,7 +450,7 @@ temperature = 0.7
         assert_eq!(config.agent.consolidation_every_n_cycles, 50);
         assert_eq!(config.agent.max_actions_per_cycle, 5);
         assert_eq!(config.llm.provider, "anthropic");
-        assert_eq!(config.llm.model, "claude-sonnet-4-6-20250217");
+        assert_eq!(config.llm.model, "claude-sonnet-4-6");
         assert_eq!(config.llm.max_tokens, 4096);
         assert!((config.llm.temperature - 0.7).abs() < f64::EPSILON);
         assert_eq!(config.safety.max_api_calls_per_hour, 100);

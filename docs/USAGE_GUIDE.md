@@ -518,7 +518,7 @@ skills_dirs = ["~/.agents/skills", "~/.selfclaw/skills"]  # Skills directories (
 # ── LLM ──────────────────────────────────────────────────
 [llm]
 provider = "anthropic"               # LLM provider (see `selfclaw providers`). Default: "anthropic"
-model = "claude-sonnet-4-6-20250217"   # Model name. Default: "claude-sonnet-4-6-20250217"
+model = "claude-sonnet-4-6"   # Model name. Default: "claude-sonnet-4-6"
 max_tokens = 4096                    # Max output tokens. Default: 4096
 temperature = 0.7                    # Sampling temperature (0.0-2.0). Default: 0.7
 # api_key = "sk-..."                # Optional: explicit API key (overrides env var)
@@ -591,13 +591,13 @@ SelfClaw supports 12 built-in LLM providers plus any OpenAI-compatible endpoint.
 
 | Provider | Config Name | Default Model | Env Var | API Base URL |
 |----------|------------|---------------|---------|-------------|
-| Anthropic | `anthropic` | claude-sonnet-4-6-20250217 | `ANTHROPIC_API_KEY` | api.anthropic.com |
+| Anthropic | `anthropic` | claude-sonnet-4-6 | `ANTHROPIC_API_KEY` | api.anthropic.com |
 | OpenAI | `openai` | gpt-5.2 | `OPENAI_API_KEY` | api.openai.com |
-| Google Gemini | `google` | gemini-2.5-pro | `GOOGLE_API_KEY` | generativelanguage.googleapis.com |
+| Google Gemini | `google` | gemini-3-flash-preview | `GOOGLE_API_KEY` | generativelanguage.googleapis.com |
 | Ollama (local) | `ollama` | llama4 | — (no key needed) | localhost:11434 |
-| OpenRouter | `openrouter` | anthropic/claude-sonnet-4-6-20250217 | `OPENROUTER_API_KEY` | openrouter.ai/api |
+| OpenRouter | `openrouter` | anthropic/claude-sonnet-4.6 | `OPENROUTER_API_KEY` | openrouter.ai/api |
 | Groq | `groq` | llama-3.3-70b-versatile | `GROQ_API_KEY` | api.groq.com/openai |
-| xAI (Grok) | `xai` | grok-4 | `XAI_API_KEY` | api.x.ai |
+| xAI (Grok) | `xai` | grok-4-1-fast-reasoning | `XAI_API_KEY` | api.x.ai |
 | Mistral | `mistral` | mistral-large-latest | `MISTRAL_API_KEY` | api.mistral.ai |
 | DeepSeek | `deepseek` | deepseek-chat | `DEEPSEEK_API_KEY` | api.deepseek.com |
 | Together AI | `together` | meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8 | `TOGETHER_API_KEY` | api.together.xyz |
@@ -624,7 +624,7 @@ Some providers accept multiple names:
 ```toml
 [llm]
 provider = "anthropic"
-model = "claude-sonnet-4-6-20250217"
+model = "claude-sonnet-4-6"
 ```
 
 **OpenAI:**
@@ -648,7 +648,7 @@ model = "llama4"
 ```toml
 [llm]
 provider = "openrouter"
-model = "anthropic/claude-sonnet-4-6-20250217"
+model = "anthropic/claude-sonnet-4.6"
 ```
 
 **Custom OpenAI-compatible endpoint:**
