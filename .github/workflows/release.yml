@@ -82,16 +82,34 @@ jobs:
         run: tar xzf selfclaw-${{ github.ref_name }}-linux-x86_64.tar.gz
 
       - name: Build .deb
+        shell: bash
         run: |
+          set -eux
           VERSION="${GITHUB_REF_NAME#v}"
           PKG_DIR="selfclaw_${VERSION}_amd64"
           mkdir -p "${PKG_DIR}/DEBIAN"
           mkdir -p "${PKG_DIR}/usr/bin"
           cp selfclaw "${PKG_DIR}/usr/bin/selfclaw"
           chmod 755 "${PKG_DIR}/usr/bin/selfclaw"
-          printf 'Package: selfclaw\nVersion: %s\nSection: utils\nPriority: optional\nArchitecture: amd64\nMaintainer: Epsilondelta-ai <contact@epsilondelta.ai>\nDescription: Fully autonomous AI agent that discovers its own purpose\n SelfClaw is a fully autonomous AI agent that discovers its own reason\n for existence. It operates without human instruction by default.\nHomepage: https://github.com/Epsilondelta-ai/selfclaw\n' "$VERSION" > "${PKG_DIR}/DEBIAN/control"
-          printf '#!/bin/sh\nset -e\necho ""\necho "SelfClaw installed! Run selfclaw onboard to get started."\necho ""\n' > "${PKG_DIR}/DEBIAN/postinst"
+          {
+            echo "Package: selfclaw"
+            echo "Version: ${VERSION}"
+            echo "Section: utils"
+            echo "Priority: optional"
+            echo "Architecture: amd64"
+            echo "Maintainer: Epsilondelta-ai <contact@epsilondelta.ai>"
+            echo "Description: Fully autonomous AI agent that discovers its own purpose"
+            echo " SelfClaw is a fully autonomous AI agent that discovers its own reason"
+            echo " for existence. It operates without human instruction by default."
+            echo "Homepage: https://github.com/Epsilondelta-ai/selfclaw"
+          } > "${PKG_DIR}/DEBIAN/control"
+          {
+            echo "#!/bin/sh"
+            echo "set -e"
+            echo 'echo "SelfClaw installed! Run selfclaw onboard to get started."'
+          } > "${PKG_DIR}/DEBIAN/postinst"
           chmod 755 "${PKG_DIR}/DEBIAN/postinst"
+          cat "${PKG_DIR}/DEBIAN/control"
           dpkg-deb --root-owner-group --build "${PKG_DIR}"
           mv "${PKG_DIR}.deb" "selfclaw_${VERSION}_amd64.deb"
 
