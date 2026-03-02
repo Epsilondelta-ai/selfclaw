@@ -81,37 +81,26 @@ jobs:
       - name: Extract binary
         run: tar xzf selfclaw-${{ github.ref_name }}-linux-x86_64.tar.gz
 
-      - name: Build .deb
-        shell: bash
+      - name: Create .deb control file
         run: |
-          set -eux
           VERSION="${GITHUB_REF_NAME#v}"
-          PKG_DIR="selfclaw_${VERSION}_amd64"
-          mkdir -p "${PKG_DIR}/DEBIAN"
-          mkdir -p "${PKG_DIR}/usr/bin"
-          cp selfclaw "${PKG_DIR}/usr/bin/selfclaw"
-          chmod 755 "${PKG_DIR}/usr/bin/selfclaw"
-          {
-            echo "Package: selfclaw"
-            echo "Version: ${VERSION}"
-            echo "Section: utils"
-            echo "Priority: optional"
-            echo "Architecture: amd64"
-            echo "Maintainer: Epsilondelta-ai <contact@epsilondelta.ai>"
-            echo "Description: Fully autonomous AI agent that discovers its own purpose"
-            echo " SelfClaw is a fully autonomous AI agent that discovers its own reason"
-            echo " for existence. It operates without human instruction by default."
-            echo "Homepage: https://github.com/Epsilondelta-ai/selfclaw"
-          } > "${PKG_DIR}/DEBIAN/control"
-          {
-            echo "#!/bin/sh"
-            echo "set -e"
-            echo 'echo "SelfClaw installed! Run selfclaw onboard to get started."'
-          } > "${PKG_DIR}/DEBIAN/postinst"
-          chmod 755 "${PKG_DIR}/DEBIAN/postinst"
-          cat "${PKG_DIR}/DEBIAN/control"
-          dpkg-deb --root-owner-group --build "${PKG_DIR}"
-          mv "${PKG_DIR}.deb" "selfclaw_${VERSION}_amd64.deb"
+          mkdir -p pkg/DEBIAN pkg/usr/bin
+          cp selfclaw pkg/usr/bin/selfclaw
+          chmod 755 pkg/usr/bin/selfclaw
+          printf '%s\n' \
+            "Package: selfclaw" \
+            "Version: $VERSION" \
+            "Architecture: amd64" \
+            "Maintainer: Epsilondelta-ai <contact@epsilondelta.ai>" \
+            "Description: Fully autonomous AI agent" \
+            > pkg/DEBIAN/control
+          cat pkg/DEBIAN/control
+
+      - name: Build .deb
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          fakeroot dpkg-deb --build pkg "selfclaw_${VERSION}_amd64.deb"
+          ls -la *.deb
 
       - name: Upload .deb
         uses: actions/upload-artifact@v4
